@@ -1,5 +1,5 @@
 const axios = require("axios")
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js")
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js")
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
 module.exports = {
@@ -9,7 +9,7 @@ module.exports = {
             "Get the newest earthquake from USGS (Global 6 hours, 2.5+)"
         ),
     async execute(interaction) {
-        await interaction.deferReply()
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId

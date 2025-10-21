@@ -1,5 +1,5 @@
 require("dotenv").config()
-const { SlashCommandBuilder } = require("discord.js")
+const { SlashCommandBuilder, MessageFlags } = require("discord.js")
 const Groq = require("groq-sdk")
 const groq = new Groq()
 
@@ -11,7 +11,7 @@ module.exports = {
             option.setName("input").setDescription("Say something to RanQuake")
         ),
     async execute(interaction) {
-        await interaction.deferReply()
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         try {
             // Groq
             const chat = await groq.chat.completions.create({

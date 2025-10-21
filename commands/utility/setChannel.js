@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js")
+const { SlashCommandBuilder, MessageFlags } = require("discord.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,7 +13,7 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
-        await interaction.deferReply()
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         await interaction.editReply("Setting earthquake alert channel...")
     },
 }
