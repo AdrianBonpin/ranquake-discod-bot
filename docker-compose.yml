@@ -1,0 +1,16 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  ranquake-bot:
+    # Use the name you tagged your image with
+    build: .
+    image: ranquake-bot:latest
+    container_name: ranquake-instance
+    
+    # Loads all variables from the .env file into the container environment
+    env_file:
+      - .env
+      
+    # Use restart: always to ensure the bot restarts if it crashes or the host reboots
+    restart: always
