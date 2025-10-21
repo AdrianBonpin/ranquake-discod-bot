@@ -1,6 +1,3 @@
-# docker-compose.yml
-version: '3.8'
-
 services:
   ranquake-bot:
     # Use the name you tagged your image with

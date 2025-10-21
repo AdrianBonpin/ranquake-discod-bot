@@ -31,4 +31,4 @@ EXPOSE 3000
 
 # Define the command to run your application when the container starts
 # Replace 'index.js' with your main file name if it's different
-CMD [ "npm", "run", "start" ]
+CMD [ "npm", "run", "deploy" ]
