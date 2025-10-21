@@ -4,3 +4,4 @@ Please set the following variables in your `.env`
 - GUILD_ID
 - CHANNEL_ID
 - MAPBOX_API_KEY
+- GROQ_API_KEY

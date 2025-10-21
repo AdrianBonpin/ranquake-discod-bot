@@ -79,7 +79,10 @@ module.exports = {
                             {
                                 name: "Time (PST)",
                                 value: new Date(properties.time).toLocaleString(
-                                    "en-PH"
+                                    "en-PH",
+                                    {
+                                        timeZone: "Asia/Manila",
+                                    }
                                 ),
                                 inline: true,
                             },
