@@ -1,12 +1,16 @@
 const axios = require("axios")
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js")
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    MessageFlags,
+} = require("discord.js")
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("get-local-quake")
         .setDescription(
-            "Get the newest earthquake from USGS (Philippines 6 hours, 2.5+)"
+            "Get the newest earthquake from USGS (Philippines, 2.5+)"
         ),
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
@@ -14,8 +18,21 @@ module.exports = {
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId
         // Fetch data from USGS API
-        const apiUrl =
-            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=now%20-6%20hour&minmagnitude=2.5&minlatitude=4&maxlatitude=21&minlongitude=115&maxlongitude=130&orderby=time"
+        // Define time 6 hours ago in ISO string
+        const sixHoursAgo = new Date(
+            Date.now() - 6 * 60 * 60 * 1000
+        ).toISOString()
+
+        // Define bounding‐box for the Philippines region
+        // Example coordinates: SW: lat 4.5, lon 115.5 – NE: lat 21.5, lon 130.0
+        const south = 4.5
+        const west = 115.5
+        const north = 21.5
+        const east = 130.0
+
+        // Build URL for USGS FDSN Event Web Service (GeoJSON output)
+        const apiUrl = `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=${sixHoursAgo}&minmagnitude=2.5&minlatitude=${south}&maxlatitude=${north}&minlongitude=${west}&maxlongitude=${east}`
+
         try {
             const { data } = await axios.get(apiUrl, { timeout: 10000 })
             if (data) {
@@ -115,7 +132,7 @@ module.exports = {
                     await channel.send({ embeds: [quakeEmbed] })
                 } else {
                     await interaction.editReply(
-                        "No recent earthquakes found in the last hour."
+                        "No recent earthquakes found in the last 6 hours."
                     )
                 }
             }

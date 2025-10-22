@@ -1,21 +1,30 @@
 const axios = require("axios")
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js")
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    MessageFlags,
+} = require("discord.js")
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("get-global-quake")
-        .setDescription(
-            "Get the newest earthquake from USGS (Global 6 hours, 2.5+)"
-        ),
+        .setDescription("Get the newest earthquake from USGS (Global, 2.5+)"),
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId
         // Fetch data from USGS API
-        const apiUrl =
-            "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&starttime=now%20-6%20hour&minmagnitude=2.5&orderby=time"
+        // Calculate time 6 hours ago in ISO format
+        const sixHoursAgo = new Date(
+            Date.now() - 6 * 60 * 60 * 1000
+        ).toISOString()
+
+        // Build the USGS query URL
+        const apiUrl = `https://earthquake.usgs.gov/fdsnws/event/1/query.geojson?starttime=${sixHoursAgo}&minmagnitude=2.5`
+
+        // Use the new apiUrl in your axios.get call
         try {
             const { data } = await axios.get(apiUrl, { timeout: 10000 })
             if (data) {
@@ -115,7 +124,7 @@ module.exports = {
                     await channel.send({ embeds: [quakeEmbed] })
                 } else {
                     await interaction.editReply(
-                        "No recent earthquakes found in the last hour."
+                        "No recent earthquakes found in the last 6 hours."
                     )
                 }
             }
