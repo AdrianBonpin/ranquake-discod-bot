@@ -10,7 +10,7 @@ module.exports = {
                 .setDescription(
                     "The ID of the channel to set for earthquake alerts"
                 )
-                .setRequired(true)
+                .setRequired(false)
         ),
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })

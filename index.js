@@ -201,7 +201,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply("Earthquake updates requested!")
             await interaction.editReply(await sendQuakeAlerts())
         } else if (interaction.commandName === "set-earthquake-channel") {
-            const newChannelId = interaction.options.getString("channel_id")
+            let newChannelId =
+                interaction.options.getString("channel_id") ||
+                interaction.channelId
             if (!newChannelId) {
                 return interaction.editReply("Invalid channel ID provided.")
             }
