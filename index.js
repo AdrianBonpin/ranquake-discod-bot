@@ -11,7 +11,7 @@ const { getNewEarthquakes } = require("./scripts/earthquakeTracker.js")
 const botToken = process.env.DISCORD_BOT_TOKEN
 let channelId = process.env.CHANNEL_ID
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
-const POLLING_INTERVAL_MS = 5 * 60 * 1000 // Check every 5 minutes
+const POLLING_INTERVAL_MS = 90 * 1000 // Check every 1 minute 30 seconds
 
 const client = new Client({
     intents: [
