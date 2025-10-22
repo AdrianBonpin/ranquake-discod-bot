@@ -33,7 +33,6 @@ async function sendQuakeAlerts() {
         }
 
         // --- Multi Server Support ---
-        let sentAlertsCount = 0
         const guildsToAlert = Array.from(guildChannelIds.entries())
 
         if (guildsToAlert.length === 0)
@@ -127,7 +126,7 @@ async function sendQuakeAlerts() {
 
 let collectedCommands = []
 
-client.once(Events.ClientReady, (readyClient) => {
+client.once(Events.ClientReady, async (readyClient) => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`)
 
     // Collect Commands on Startup
@@ -137,17 +136,26 @@ client.once(Events.ClientReady, (readyClient) => {
     )
 
     // Deploy to existing guilds on startup
-    readyClient.guilds.cache.forEach(async ([guildId, guild]) => {
-        deployCommandsToGuild(
-            guildId,
-            process.env.CLIENT_ID,
+    const guilds = Array.from(readyClient.guilds.cache.values())
+    for (const guild of guilds) {
+        await deployCommandsToGuild(
+            guild.id,
+            process.env.CLIENT_ID, // Use CLIENT_ID
             botToken,
             collectedCommands
         )
-    })
+    }
 
     // Earthquake Tracking Service Initialization
+    console.log("Starting earthquake alert service...")
     sendQuakeAlerts()
+
+    // Set interval for periodic checks
+    console.log(
+        `Setting up periodic earthquake checks every ${
+            POLLING_INTERVAL_MS / 1000
+        } seconds.`
+    )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
 })
 
