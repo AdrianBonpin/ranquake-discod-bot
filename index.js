@@ -126,15 +126,21 @@ async function sendQuakeAlerts() {
 
 let collectedCommands = []
 
-client.once(Events.ClientReady, async (readyClient) => {
-    console.log(`Ready! Logged in as ${readyClient.user.tag}`)
+function printDividers(count) {
+    for (let i = 0; i < count; i++)
+        console.log("========================================")
+}
 
+client.once(Events.ClientReady, async (readyClient) => {
+    printDividers(1)
+    console.log(`Ready! Logged in as ${readyClient.user.tag}`)
+    printDividers(1)
     // Collect Commands on Startup
     collectedCommands = getLocalCommands()
     console.log(
         `Collected ${collectedCommands.length} commands for deployment.`
     )
-
+    printDividers(2)
     // Deploy to existing guilds on startup
     const guilds = Array.from(readyClient.guilds.cache.values())
     for (const guild of guilds) {
@@ -145,11 +151,11 @@ client.once(Events.ClientReady, async (readyClient) => {
             collectedCommands
         )
     }
-
+    printDividers(2)
     // Earthquake Tracking Service Initialization
     console.log("Starting earthquake alert service...")
     sendQuakeAlerts()
-
+    printDividers(1)
     // Set interval for periodic checks
     console.log(
         `Setting up periodic earthquake checks every ${
@@ -157,6 +163,7 @@ client.once(Events.ClientReady, async (readyClient) => {
         } seconds.`
     )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
+    printDividers(1)
 })
 
 // Retrieve and Register Commands
@@ -201,9 +208,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply("Earthquake updates requested!")
             await interaction.editReply(await sendQuakeAlerts())
         } else if (interaction.commandName === "set-earthquake-channel") {
-            let newChannelId =
-                interaction.options.getString("channel_id") ||
-                interaction.channelId
+            const fromInteraction = interaction.channelId
+            const fromOption = interaction.options.getString("channel_id")
+            let newChannelId = fromOption || fromInteraction
+
             if (!newChannelId) {
                 return interaction.editReply("Invalid channel ID provided.")
             }
@@ -226,7 +234,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 )
 
             await interaction.editReply(
-                `Earthquake alert channel set to <#${channelId}>`
+                `Earthquake alert channel set to <#${newChannelId}>`
             )
         } else if (interaction.commandName === "is-linked") {
             const guildId = interaction.guildId
