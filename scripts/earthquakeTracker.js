@@ -1,4 +1,5 @@
 import axios from "axios"
+import { URLSearchParams } from "url" // Import URLSearchParams for Node.js environments
 
 // --- Configuration ---
 const PHILIPPINES_BBOX = {
@@ -8,14 +9,17 @@ const PHILIPPINES_BBOX = {
     maxlongitude: 130.0, // East
 }
 const USGS_API_URL = "https://earthquake.usgs.gov/fdsnws/event/1/query"
-const MIN_MAGNITUDE = 4.5
+
+// 🚨 Recommended change: Set this to 4.0 if you only want significant events.
+const MIN_MAGNITUDE = 4
 const ID_CLEAR_INTERVAL_MS = 6 * 60 * 60 * 1000 // Clear set every 6 hours
+const REQUEST_TIMEOUT_MS = 30 * 1000 // 🎯 FIX: Set a 15-second timeout
 
 // --- State Management (Private) ---
 let trackedQuakeIds = new Set()
 let lastClearTime = Date.now()
 
-// --- Private Functions ---
+// ... (clearOldIds and formatQuakeData functions remain the same) ...
 
 /**
  * Clears the set of tracked IDs if the defined interval has passed.
@@ -40,6 +44,7 @@ function clearOldIds() {
 function formatQuakeData(quake) {
     const properties = quake.properties
     const quakeCoords = quake.geometry.coordinates // [longitude, latitude, depth]
+    // Use Asia/Manila (PST) directly in the format
     const time = new Date(properties.time).toLocaleString("en-US", {
         timeZone: "Asia/Manila",
     })
@@ -83,9 +88,18 @@ export async function getNewEarthquakes(recentMinutes = 15) {
 
     try {
         // 3. Fetch data
-        const response = await axios.get(USGS_API_URL, { params })
-        const allQuakes = response.data.features || []
+        const queryParams = new URLSearchParams(params).toString()
+        console.log(
+            `\n🌍 Fetching earthquake data from USGS:\n${USGS_API_URL}?${queryParams}`
+        )
 
+        // 🎯 FIX APPLIED HERE: Added timeout configuration
+        const response = await axios.get(USGS_API_URL, {
+            params: params,
+            timeout: REQUEST_TIMEOUT_MS,
+        })
+
+        const allQuakes = response.data.features || []
         const newQuakes = []
 
         // 4. Filter and Track
@@ -97,9 +111,29 @@ export async function getNewEarthquakes(recentMinutes = 15) {
             }
         }
 
+        console.log(
+            `✅ Found ${allQuakes.length} events in total; ${newQuakes.length} are new.`
+        )
         return newQuakes
     } catch (error) {
-        console.error(`\n🚨 Error fetching data from USGS: ${error.message}`)
+        // Handle timeout specifically
+        if (
+            error.code === "ECONNABORTED" ||
+            error.code === "ETIMEDOUT" ||
+            error.message?.includes("timeout")
+        ) {
+            console.error(
+                `\n🚨 Error fetching data from USGS: Request timed out after ${
+                    REQUEST_TIMEOUT_MS / 1000
+                }s. Try increasing the timeout or check your network.`
+            )
+        } else {
+            // Handle other Axios or network errors
+            console.error(
+                `\n🚨 Error fetching data from USGS: ${error.message}`
+            )
+        }
+
         // Return empty array on error to allow script to continue
         return []
     }

@@ -15,7 +15,7 @@ const {
 const botToken = process.env.DISCORD_BOT_TOKEN
 const guildChannelIds = new Map()
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
-const POLLING_INTERVAL_MS = 90 * 1000 // Check every 1 minute 30 seconds
+const POLLING_INTERVAL_MS = 10 * 60 * 1000 // Check every 10 minutes
 
 const client = new Client({
     intents: [
@@ -27,7 +27,7 @@ const client = new Client({
 
 async function sendQuakeAlerts() {
     try {
-        const newQuakes = await getNewEarthquakes(15)
+        const newQuakes = await getNewEarthquakes(60) // Check for quakes in the last 6 hours
         if (newQuakes.length === 0) {
             return "No new earthquakes to report."
         }
