@@ -42,7 +42,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
     clearOldIds()
 
     // First Run Skips Fetching
-    if (firstRun) {
+    if (firstRun && !pure) {
         firstRun = false
         return []
     }
@@ -109,7 +109,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             if (
                 Math.abs(
                     new Date(dateTime.replace(" - ", " ")).getTime() -
-                        curDate.getTime()   
+                        curDate.getTime()
                 ) >
                 recentHours * 60 * 60 * 1000
             )
@@ -132,18 +132,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             const quake = {
                 // Create ID using dateTime & lat/long
                 id: (dateTime + lat + long).replace(/\s+/g, "-"),
-                timePST: new Date(dateTime.replace(" - ", " ")).toLocaleString(
-                    "en-PH",
-                    {
-                        timeZone: "Asia/Manila",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                        second: undefined,
-                    }
-                ),
+                timePST: dateTime.replace(" - ", " "),
                 magnitude: mag,
                 location: place,
                 latitude: lat,
@@ -182,8 +171,8 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
     }
 }
 
-async function test(){
-    const data = await getEarthquakeData(30)
+async function test() {
+    const data = await getEarthquakeData(24, true)
     console.log(data.reverse())
 }
 

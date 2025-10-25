@@ -7,6 +7,9 @@ const {
 } = require("./deploy-commands-guild.js")
 const getEarthquakeData = require("./scripts/phivolcs.js")
 const { postNewQuakeEmbed } = require("./scripts/quakeEmbed.js")
+const db = require("./scripts/db.js")
+
+// Global Variables
 const botToken = process.env.DISCORD_BOT_TOKEN
 const guildChannelIds = new Map()
 const POLLING_INTERVAL_MS = 5 * 60 * 1000 // Check every 5 minutes
@@ -56,6 +59,13 @@ function printDividers(count) {
 client.once(Events.ClientReady, async (readyClient) => {
     printDividers(1)
     console.log(`Ready! Logged in as ${readyClient.user.tag}`)
+
+    // Load guild channel IDs from the database
+    guildChannelIds = db.getAllAlertChannels()
+    console.log(
+        `Loaded ${guildChannelIds.size} alert channels from the database.`
+    )
+
     printDividers(1)
     // Collect Commands on Startup
     collectedCommands = getLocalCommands()
@@ -146,6 +156,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
                 )
             }
 
+            // Store the channel ID in the database
+            db.setAlertChannel(guildId, newChannelId)
             guildChannelIds.set(guildId, newChannelId)
 
             // Check that the channel ID exists in the bot's cache
@@ -167,6 +179,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
 
             const linkedChannelId = guildChannelIds.get(guildId)
+
             if (linkedChannelId) {
                 return interaction.editReply(
                     `This server has an earthquake alert channel set to <#${linkedChannelId}>.`
@@ -176,6 +189,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     "This server does not have an earthquake alert channel set."
                 )
             }
+        } else if (interaction.commandName === "unlink") {
+            const guildId = interaction.guildId
+            if (!guildId) {
+                return interaction.editReply(
+                    "This command must be used inside a server."
+                )
+            }
+
+            const linkedChannelId = guildChannelIds.get(guildId)
+            if (!linkedChannelId) {
+                return interaction.editReply(
+                    "This server does not have an earthquake alert channel set."
+                )
+            }
+
+            guildChannelIds.delete(guildId)
+            db.setAlertChannel(guildId, null)
+
+            return interaction.editReply("Earthquake alert channel unlinked.")
         }
     } catch (error) {
         console.error(error)

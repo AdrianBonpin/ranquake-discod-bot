@@ -61,7 +61,7 @@ export async function postNewQuakeEmbed(channel, quake) {
                     inline: true,
                 }
             )
-            .setImage(mapLink)
+            .setImage(quake.url.replace("html", "jpg"))
             .setFooter({ text: "Data sourced from Phivolcs" })
             .setTimestamp()
 

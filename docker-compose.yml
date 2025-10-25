@@ -8,6 +8,9 @@ services:
     # Loads all variables from the .env file into the container environment
     env_file:
       - .env
+
+    volumes:
+      - ./data:/usr/src/app/data
       
     # Use restart: always to ensure the bot restarts if it crashes or the host reboots
     restart: always
