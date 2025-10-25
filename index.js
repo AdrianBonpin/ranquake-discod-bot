@@ -1,21 +1,15 @@
 const fs = require("node:fs")
 const path = require("node:path")
-const {
-    Client,
-    Events,
-    GatewayIntentBits,
-    Collection,
-    EmbedBuilder,
-} = require("discord.js")
-const { getNewEarthquakes } = require("./scripts/earthquakeTracker.js")
+const { Client, Events, GatewayIntentBits, Collection } = require("discord.js")
 const {
     getLocalCommands,
     deployCommandsToGuild,
 } = require("./deploy-commands-guild.js")
+const getEarthquakeData = require("./scripts/phivolcs.js")
+const { postNewQuakeEmbed } = require("./scripts/quakeEmbed.js")
 const botToken = process.env.DISCORD_BOT_TOKEN
 const guildChannelIds = new Map()
-const mapBoxApiKey = process.env.MAPBOX_API_KEY
-const POLLING_INTERVAL_MS = 10 * 60 * 1000 // Check every 10 minutes
+const POLLING_INTERVAL_MS = 5 * 60 * 1000 // Check every 5 minutes
 
 const client = new Client({
     intents: [
@@ -27,7 +21,7 @@ const client = new Client({
 
 async function sendQuakeAlerts() {
     try {
-        const newQuakes = await getNewEarthquakes(60) // Check for quakes in the last 6 hours
+        const newQuakes = await getEarthquakeData() // Check for quakes in the last 12 hours
         if (newQuakes.length === 0) {
             return "No new earthquakes to report."
         }
@@ -41,82 +35,9 @@ async function sendQuakeAlerts() {
         // For each server that has set a channel, send alerts
         guildsToAlert.forEach(async ([guildId, channelId]) => {
             const channel = client.channels.cache.get(channelId)
-            newQuakes.forEach(async (quake) => {
-                // Create an embed message for better formatting
-
-                // Values for Map Link
-                const LONGITUDE = quake.longitude.toFixed(4)
-                const LATITUDE = quake.latitude.toFixed(4)
-                // 🚨 CORRECTION: Use only the integer part for the Mapbox pin label
-                // because it is limited to two characters (e.g., "6" or "10")
-                const MAG_LABEL_MAPBOX = Math.floor(quake.magnitude).toString() // For the Mapbox marker
-                const MAP_SIZE = "600x400"
-                let mapLink = ""
-                if (mapBoxApiKey) {
-                    const markerColor = (() => {
-                        if (quake.magnitude >= 7.0) return "FF0000" // Red
-                        if (quake.magnitude >= 6.0) return "FFA500" // Orange
-                        if (quake.magnitude >= 5.0) return "FFFF00" // Yellow
-                        return "00FF00" // Green
-                    })()
-                    const customMarker = `pin-s-${MAG_LABEL_MAPBOX}+${markerColor}(${LONGITUDE},${LATITUDE})`
-                    mapLink =
-                        `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/` +
-                        `${customMarker}/` +
-                        `${LONGITUDE},${LATITUDE},7,0/${MAP_SIZE}@2x` + // <--- KEY CHANGE: Added @2x
-                        `?access_token=${mapBoxApiKey}`
-                } else {
-                    mapLink = `https://static-maps.yandex.ru/1.x/?l=map&size=400,300&z=7&ll=${LONGITUDE},${LATITUDE}&pt=${LONGITUDE},${LATITUDE},pmwtm1`
-                }
-
-                const magnitudeColor = (() => {
-                    if (quake.magnitude >= 7.0) return 0xff0000 // Red (Major)
-                    if (quake.magnitude >= 6.0) return 0xffa500 // Orange (Strong)
-                    if (quake.magnitude >= 5.0) return 0xffff00 // Yellow (Moderate)
-                    return 0x00ff00 // Green (Light)
-                })()
-
-                const quakeEmbed = new EmbedBuilder()
-                    .setColor(magnitudeColor)
-                    .setTitle(
-                        `🚨 M${quake.magnitude.toFixed(1)} - ${quake.location}`
-                    )
-                    .setURL(quake.usgsUrl)
-                    .setDescription(
-                        `An earthquake of magnitude ${quake.magnitude.toFixed(
-                            1
-                        )} occurred.`
-                    )
-                    .addFields(
-                        {
-                            name: "Time (PST)",
-                            value: quake.timePST,
-                            inline: true,
-                        },
-                        {
-                            name: "Magnitude",
-                            value: `M${quake.magnitude.toFixed(1)}`,
-                            inline: true,
-                        },
-                        {
-                            name: "Depth",
-                            value: `${quake.depthKm.toFixed(1)} km`,
-                            inline: true,
-                        },
-                        {
-                            name: "Coordinates",
-                            value: `Lat: ${quake.latitude.toFixed(
-                                2
-                            )}, Lon: ${quake.longitude.toFixed(2)}`,
-                            inline: true,
-                        }
-                    )
-                    .setImage(mapLink)
-                    .setFooter({ text: "Data sourced from USGS" })
-                    .setTimestamp()
-
-                await channel.send({ embeds: [quakeEmbed] })
-            })
+            newQuakes.forEach(
+                async (quake) => await postNewQuakeEmbed(channel, quake)
+            )
         })
         return `Sent ${newQuakes.length} new earthquake alerts to ${guildsToAlert.length} servers.`
     } catch (error) {

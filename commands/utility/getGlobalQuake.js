@@ -11,7 +11,7 @@ module.exports = {
         .setName("get-global-quake")
         .setDescription("Get the newest earthquake from USGS (Global, 2.5+)"),
     async execute(interaction) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral })
+        await interaction.deferReply()
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId
