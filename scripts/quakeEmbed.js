@@ -10,13 +10,7 @@ export async function postNewQuakeEmbed(channel, quake) {
 
         // If MapBox API Key is set
         if (mapBoxApiKey) {
-            const markerColor = (() => {
-                if (quake.magnitude >= 7.0) return "FF0000" // Red
-                if (quake.magnitude >= 6.0) return "FFA500" // Orange
-                if (quake.magnitude >= 5.0) return "FFFF00" // Yellow
-                return "00FF00" // Green
-            })()
-            const customMarker = `pin-s-${MAG_LABEL_MAPBOX}+${markerColor}(${quake.longitude},${quake.latitude})`
+            const customMarker = `pin-s-${MAG_LABEL_MAPBOX}+FF0000(${quake.longitude},${quake.latitude})`
             mapLink =
                 `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/` +
                 `${customMarker}/` +

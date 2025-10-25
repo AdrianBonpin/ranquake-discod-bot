@@ -32,6 +32,7 @@ async function sendQuakeAlerts() {
         if (guildsToAlert.length === 0)
             return "No Servers have set an alert channel yet."
 
+        newQuakes.reverse()
         // For each server that has set a channel, send alerts
         guildsToAlert.forEach(async ([guildId, channelId]) => {
             const channel = client.channels.cache.get(channelId)

@@ -99,9 +99,6 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
 
         // == Data Cleanup & Parsing
         rows.each((idx, row) => {
-            // Testing Only
-            if (idx > 100) return false
-
             const col = $(row).find("td")
 
             if (col.length < 6) return
@@ -112,7 +109,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             if (
                 Math.abs(
                     new Date(dateTime.replace(" - ", " ")).getTime() -
-                        curDate.getTime()
+                        curDate.getTime()   
                 ) >
                 recentHours * 60 * 60 * 1000
             )
@@ -184,5 +181,12 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
         return []
     }
 }
+
+async function test(){
+    const data = await getEarthquakeData(30)
+    console.log(data.reverse())
+}
+
+// test()
 
 module.exports = getEarthquakeData
