@@ -4,7 +4,7 @@ const Database = require("better-sqlite3")
 const path = require("node:path")
 
 // Use the persistent 'data' directory defined in docker-compose.yml
-const DB_PATH = path.join(__dirname, "data", "db.sqlite")
+const DB_PATH = path.join("/app", "data", "db.sqlite")
 
 class DbManager {
     constructor() {
