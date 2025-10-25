@@ -205,7 +205,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             }
 
             guildChannelIds.delete(guildId)
-            db.setAlertChannel(guildId, null)
+            db.deleteAlertChannel(guildId)
 
             return interaction.editReply("Earthquake alert channel unlinked.")
         }

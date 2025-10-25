@@ -60,10 +60,6 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
                 Connection: "keep-alive",
             },
         })
-        if (res.status === 200)
-            console.log(
-                "\nSuccessfully fetched earthquake data from PHIVOLCS.\n"
-            )
 
         // Start Parsing HTML with Cheerio
         const $ = cheerio.load(res.data)
@@ -89,13 +85,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             return []
         }
 
-        // Process Table Rows
-        console.log("\nParsing earthquake data from table rows...")
-
         const rows = $(targetTable).find("tr")
-        console.log(
-            `Found ${rows.length} rows, processing only rows within ${recentHours} hours and magnitude >= ${MIN_MAG}.`
-        )
 
         // == Data Cleanup & Parsing
         rows.each((idx, row) => {
@@ -158,9 +148,6 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             spacer()
             return newQuakes
         } else {
-            console.log(
-                '\n"Pure" mode enabled. Skipping removal of old IDs for direct return.'
-            )
             spacer()
             return loggedQuakes
         }

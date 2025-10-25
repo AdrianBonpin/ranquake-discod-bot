@@ -64,6 +64,17 @@ class DbManager {
         rows.forEach((row) => map.set(row.guild_id, row.alert_channel_id))
         return map
     }
+
+    /**
+     * Deletes the configuration row for a guild.
+     * @param {string} guildId
+     */
+    deleteAlertChannel(guildId) {
+        const stmt = this.db.prepare(
+            "DELETE FROM guild_config WHERE guild_id = ?"
+        )
+        stmt.run(guildId)
+    }
 }
 
 module.exports = new DbManager() // Export a singleton instance
