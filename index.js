@@ -11,7 +11,7 @@ const db = require("./scripts/db.js")
 
 // Global Variables
 const botToken = process.env.DISCORD_BOT_TOKEN
-const guildChannelIds = new Map()
+let guildChannelIds = new Map()
 const POLLING_INTERVAL_MS = 5 * 60 * 1000 // Check every 5 minutes
 
 const client = new Client({
