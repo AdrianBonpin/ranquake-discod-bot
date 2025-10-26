@@ -13,7 +13,7 @@ const MIN_MAG = 4.0
 let firstRun = true // Flag for first run, flip to false after first run
 let trackedQuakeIds = new Set()
 let lastClearTime = Date.now()
-const CLEAR_INTERVAL_MS = 6 * 60 * 60 * 1000 // Clear every 6 hours
+const CLEAR_INTERVAL_MS = 24 * 60 * 60 * 1000 // Clear every 6 hours
 
 // Axios Instance with 30 seconds timeout and ignore SSL
 const phivolcsAxios = axios.create({
