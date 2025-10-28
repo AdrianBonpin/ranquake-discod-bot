@@ -49,8 +49,6 @@ async function getEarthquakeData(recentHours = 6, pure = false) {
     const curDate = new Date()
     // Fetch Earthquake Data
     try {
-        spacer()
-        console.log("Fetching earthquake data from PHIVOLCS...")
         const res = await phivolcsAxios.get(URL, {
             headers: {
                 "User-Agent":
@@ -75,7 +73,6 @@ async function getEarthquakeData(recentHours = 6, pure = false) {
                 text.includes("Philippine Time")
             ) {
                 targetTable = table
-                console.log(`Found target table at index ${idx}.`)
                 return false // Break loop
             }
         })
@@ -145,15 +142,12 @@ async function getEarthquakeData(recentHours = 6, pure = false) {
                     newQuakes.push(quake)
                 }
             })
-            spacer()
             return newQuakes
         } else {
-            spacer()
             return loggedQuakes
         }
     } catch (error) {
         console.error(`Error fetching data from PHIVOLCS: ${error.message}`)
-        spacer()
         return []
     }
 }
