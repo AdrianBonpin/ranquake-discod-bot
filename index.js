@@ -30,7 +30,7 @@ const client = new Client({
 
 async function sendQuakeAlerts() {
     try {
-        const newQuakes = await getEarthquakeData() // Check for quakes in the last 12 hours
+        const newQuakes = await getEarthquakeData() // Check for quakes in the last 6 hours
         if (newQuakes.length === 0) {
             return "No new earthquakes to report."
         }
