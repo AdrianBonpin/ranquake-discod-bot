@@ -23,8 +23,6 @@ const phivolcsAxios = axios.create({
     timeout: 30 * 1000,
 })
 
-const spacer = () => console.log("========================================")
-
 function clearOldIds() {
     const now = Date.now()
     if (now - lastClearTime > CLEAR_INTERVAL_MS) {
@@ -153,7 +151,7 @@ async function getEarthquakeData(recentHours = 6, pure = false) {
 }
 
 async function test() {
-    const data = await getEarthquakeData(24, true)
+    const data = await getEarthquakeData()
     console.log(data.reverse())
 }
 
