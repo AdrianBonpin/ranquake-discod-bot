@@ -35,7 +35,7 @@ function clearOldIds() {
     }
 }
 
-async function getEarthquakeData(recentHours = 6, pure = false) {
+async function getEarthquakeData(recentHours = 12, pure = false) {
     // Clear tracked IDs if interval has passed
     clearOldIds()
 
