@@ -6,6 +6,7 @@ const {
     GatewayIntentBits,
     Collection,
     MessageFlags,
+    ActivityType,
 } = require("discord.js")
 const {
     getLocalCommands,
@@ -102,6 +103,10 @@ client.once(Events.ClientReady, async (readyClient) => {
     )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
     printDividers(1)
+    client.user.setPresence({
+        type: ActivityType.Custom,
+        name: "Listening for earthquakes 🌊 | Type /help",
+    })
 })
 
 // Retrieve and Register Commands
@@ -142,10 +147,27 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     try {
         await command.execute(interaction)
-        if (interaction.commandName === "request-update") {
+        // Help
+        if (interaction.commandName === "help") {
+            const user = interaction.user
+            let commandList = ""
+            for (const command of collectedCommands) {
+                commandList +=
+                    "\n- `/" + command.name + "` : " + command.description
+            }
+            await interaction.editReply(
+                `### Hello ${user}!
+            \nHere's the list of commands:
+            ${commandList}`
+            )
+        }
+        // Request-Update
+        else if (interaction.commandName === "request-update") {
             await interaction.editReply("Earthquake updates requested!")
             await interaction.editReply(await sendQuakeAlerts())
-        } else if (interaction.commandName === "set-earthquake-channel") {
+        }
+        // Set-Earthquake-Channel
+        else if (interaction.commandName === "set-earthquake-channel") {
             const fromInteraction = interaction.channelId
             const fromOption = interaction.options.getString("channel_id")
             let newChannelId = fromOption || fromInteraction
@@ -176,7 +198,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             await interaction.editReply(
                 `Earthquake alert channel set to <#${newChannelId}>`
             )
-        } else if (interaction.commandName === "is-linked") {
+        }
+        // Is-Linked
+        else if (interaction.commandName === "is-linked") {
             const guildId = interaction.guildId
             if (!guildId) {
                 return interaction.editReply(
@@ -195,7 +219,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
                     "This server does not have an earthquake alert channel set."
                 )
             }
-        } else if (interaction.commandName === "unlink") {
+        }
+        // Unlink
+        else if (interaction.commandName === "unlink") {
             const guildId = interaction.guildId
             if (!guildId) {
                 return interaction.editReply(
