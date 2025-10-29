@@ -105,7 +105,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     printDividers(1)
     client.user.setActivity({
         type: ActivityType.Custom,
-        name: "Listening for earthquakes 🌊 | Type /help",
+        name: "Listening for earthquakes 🌊 | /help",
     })
     console.log('\nTry "/help" for a list of commands.')
 })
