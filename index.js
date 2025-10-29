@@ -103,10 +103,11 @@ client.once(Events.ClientReady, async (readyClient) => {
     )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
     printDividers(1)
-    client.user.setPresence({
+    client.user.setActivity({
         type: ActivityType.Custom,
         name: "Listening for earthquakes 🌊 | Type /help",
     })
+    console.log('\nTry "/help" for a list of commands.')
 })
 
 // Retrieve and Register Commands
