@@ -14,6 +14,7 @@ class DbManager {
 
     // Creates the table if it doesn't exist
     initializeDatabase() {
+        // Create guild_config table
         const createTableSql = `
             CREATE TABLE IF NOT EXISTS guild_config (
                 guild_id TEXT PRIMARY KEY,
@@ -21,6 +22,14 @@ class DbManager {
             );
         `
         this.db.exec(createTableSql)
+
+        // Create tracked_quakes table
+        const createQuakeTableSql = `
+            CREATE TABLE IF NOT EXISTS tracked_quakes (
+                quake_id TEXT PRIMARY KEY
+            );
+        `
+        this.db.exec(createQuakeTableSql)
     }
 
     /**
@@ -36,6 +45,17 @@ class DbManager {
                 alert_channel_id=excluded.alert_channel_id;
         `)
         stmt.run(guildId, channelId)
+    }
+
+    /**
+     * Stores a tracked earthquake ID.
+     * @param {string} quakeId
+     */
+    addTrackedQuake(quakeId) {
+        const stmt = this.db.prepare(
+            "INSERT OR IGNORE INTO tracked_quakes (quake_id) VALUES (?)"
+        )
+        stmt.run(quakeId)
     }
 
     /**
@@ -74,6 +94,19 @@ class DbManager {
             "DELETE FROM guild_config WHERE guild_id = ?"
         )
         stmt.run(guildId)
+    }
+
+    /**
+     * Checks if an earthquake ID has already been tracked.
+     * @param {string} quakeId
+     * @returns {boolean}
+     */
+    isQuakeTracked(quakeId) {
+        const stmt = this.db.prepare(
+            "SELECT 1 FROM tracked_quakes WHERE quake_id = ?"
+        )
+        const row = stmt.get(quakeId)
+        return !!row // Returns true if a row is found, false otherwise
     }
 }
 

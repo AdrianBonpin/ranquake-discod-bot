@@ -9,12 +9,6 @@ const cheerio = require("cheerio")
 const URL = "https://earthquake.phivolcs.dost.gov.ph"
 const MIN_MAG = 4.0
 
-// In Memory State Management
-let firstRun = true // Flag for first run, flip to false after first run
-let trackedQuakeIds = new Set()
-let lastClearTime = Date.now()
-const CLEAR_INTERVAL_MS = 24 * 60 * 60 * 1000 // Clear every 6 hours
-
 // Axios Instance with 30 seconds timeout and ignore SSL
 const phivolcsAxios = axios.create({
     httpsAgent: new https.Agent({
@@ -23,28 +17,9 @@ const phivolcsAxios = axios.create({
     timeout: 30 * 1000,
 })
 
-function clearOldIds() {
-    const now = Date.now()
-    if (now - lastClearTime > CLEAR_INTERVAL_MS) {
-        const initialSize = trackedQuakeIds.size
-        trackedQuakeIds.clear()
-        lastClearTime = now
-        console.log(
-            `\n🧹 Memory cleanup: Cleared ${initialSize} old quake IDs from Set.`
-        )
-    }
-}
-
 async function getEarthquakeData(recentHours = 12, pure = false) {
-    // Clear tracked IDs if interval has passed
-    clearOldIds()
-
-    // First Run Skips Fetching
-    if (firstRun && !pure) {
-        firstRun = false
-        return []
-    }
     const curDate = new Date()
+
     // Fetch Earthquake Data
     try {
         const res = await phivolcsAxios.get(URL, {
@@ -130,20 +105,7 @@ async function getEarthquakeData(recentHours = 12, pure = false) {
             return true
         })
 
-        // Final Cleanup if pure is true (if Pure, requested by user and skip removal of old IDs)
-        if (!pure) {
-            const newQuakes = []
-
-            loggedQuakes.forEach((quake) => {
-                if (!trackedQuakeIds.has(quake.id)) {
-                    trackedQuakeIds.add(quake.id)
-                    newQuakes.push(quake)
-                }
-            })
-            return newQuakes
-        } else {
-            return loggedQuakes
-        }
+        return loggedQuakes
     } catch (error) {
         console.error(`Error fetching data from PHIVOLCS: ${error.message}`)
         return []

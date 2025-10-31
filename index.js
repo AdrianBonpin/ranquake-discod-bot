@@ -31,7 +31,13 @@ const client = new Client({
 
 async function sendQuakeAlerts() {
     try {
-        const newQuakes = await getEarthquakeData() // Check for quakes in the last 6 hours
+        const allRecentQuakes = await getEarthquakeData()
+
+        // Filter out already tracked earthquakes
+        const newQuakes = allRecentQuakes.filter(
+            (quake) => !db.isQuakeTracked(quake.id)
+        )
+
         if (newQuakes.length === 0) {
             return "No new earthquakes to report."
         }
@@ -43,13 +49,18 @@ async function sendQuakeAlerts() {
             return "No Servers have set an alert channel yet."
 
         newQuakes.reverse()
-        // For each server that has set a channel, send alerts
-        guildsToAlert.forEach(async ([guildId, channelId]) => {
-            const channel = client.channels.cache.get(channelId)
-            newQuakes.forEach(
-                async (quake) => await postNewQuakeEmbed(channel, quake)
-            )
+
+        // For Each Quake, send a message to each server that has set a channel
+        newQuakes.forEach(async (quake) => {
+            guildsToAlert.forEach(async ([guildId, channelId]) => {
+                const channel = client.channels.cache.get(channelId)
+                await postNewQuakeEmbed(channel, quake)
+            })
+
+            // Add the quake to the database
+            db.addTrackedQuake(quake.id)
         })
+
         return `Sent ${newQuakes.length} new earthquake alerts to ${guildsToAlert.length} servers.`
     } catch (error) {
         console.error(`Error sending quake alerts: ${error.message}`)
