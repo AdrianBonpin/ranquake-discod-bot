@@ -17,7 +17,7 @@ const phivolcsAxios = axios.create({
     timeout: 30 * 1000,
 })
 
-async function getEarthquakeData(recentHours = 12, pure = false) {
+async function getEarthquakeData(recentHours = 12) {
     const curDate = new Date()
 
     // Fetch Earthquake Data

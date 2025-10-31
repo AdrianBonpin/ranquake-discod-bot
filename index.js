@@ -59,6 +59,7 @@ async function sendQuakeAlerts() {
 
             // Add the quake to the database
             db.addTrackedQuake(quake.id)
+            console.log(`Added quake ${quake.id} to the database.\n`)
         })
 
         return `Sent ${newQuakes.length} new earthquake alerts to ${guildsToAlert.length} servers.`

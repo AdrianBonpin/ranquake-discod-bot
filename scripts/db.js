@@ -8,7 +8,7 @@ const DB_PATH = path.join("/app", "data", "db.sqlite")
 class DbManager {
     constructor() {
         // 'data/db.sqlite' will be created if it doesn't exist
-        this.db = new Database(DB_PATH, { verbose: console.log })
+        this.db = new Database(DB_PATH)
         this.initializeDatabase()
     }
 
