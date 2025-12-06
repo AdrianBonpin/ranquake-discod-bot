@@ -156,6 +156,32 @@ client.once(Events.ClientReady, async (readyClient) => {
     )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
     printDividers(1)
+
+    // Database Backup Service
+    const { createBackup, cleanOldBackups } = require("./scripts/backupDb.js")
+
+    // Create initial backup on startup
+    try {
+        console.log("📦 Creating startup database backup...")
+        createBackup("startup")
+        cleanOldBackups(10) // Keep only 10 most recent backups
+    } catch (error) {
+        console.warn(`⚠️  Initial backup failed: ${error.message}`)
+    }
+
+    // Create daily backups
+    const BACKUP_INTERVAL_MS = 24 * 60 * 60 * 1000 // 24 hours
+    setInterval(() => {
+        try {
+            console.log("📦 Creating scheduled database backup...")
+            createBackup("auto")
+            cleanOldBackups(10)
+        } catch (error) {
+            console.error(`❌ Scheduled backup failed: ${error.message}`)
+        }
+    }, BACKUP_INTERVAL_MS)
+    console.log("📦 Database backup service initialized (daily backups)")
+    printDividers(1)
     client.user.setActivity({
         type: ActivityType.Custom,
         name: "Listening for earthquakes 🌊 | /help",
