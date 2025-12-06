@@ -256,17 +256,64 @@ client.on(Events.InteractionCreate, async (interaction) => {
     try {
         await command.execute(interaction)
     } catch (error) {
-        console.error(error)
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp({
+        // DEBUG: Log error structure to understand what we're getting
+        console.log(
+            "DEBUG - Error code:",
+            error.code,
+            "Message:",
+            error.message
+        )
+
+        // Handle specific Discord API errors gracefully FIRST
+        if (error.code === 10062) {
+            // Unknown interaction - interaction token expired (>3 seconds)
+            console.warn(
+                `⚠️  Interaction expired for command: ${interaction.commandName}`
+            )
+            console.warn(
+                `   This usually happens when commands are run immediately after bot startup.`
+            )
+            console.warn(`   The command will work on subsequent attempts.`)
+            return // Don't try to respond to an expired interaction
+        }
+
+        if (error.code === 40060) {
+            // Interaction already acknowledged
+            console.warn(
+                `⚠️  Interaction already acknowledged for: ${interaction.commandName}`
+            )
+            return // Don't try to respond again
+        }
+
+        // Only log actual unexpected errors
+        const errorMsg = error?.message || error?.toString() || "Unknown error"
+        console.error(
+            `❌ Error executing command ${interaction.commandName}:`,
+            errorMsg
+        )
+
+        // For other errors, try to notify the user if interaction is still valid
+        try {
+            const errorMessage = {
                 content: "There was an error while executing this command!",
                 flags: MessageFlags.Ephemeral,
-            })
-        } else {
-            await interaction.reply({
-                content: "There was an error while executing this command!",
-                flags: MessageFlags.Ephemeral,
-            })
+            }
+
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp(errorMessage)
+            } else {
+                await interaction.reply(errorMessage)
+            }
+        } catch (followUpError) {
+            // If we can't send an error message, just log it
+            const followUpMsg =
+                followUpError?.message ||
+                followUpError?.toString() ||
+                "Unknown error"
+            console.error(
+                `❌ Could not send error message to user:`,
+                followUpMsg
+            )
         }
     }
 })

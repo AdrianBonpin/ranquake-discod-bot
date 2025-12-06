@@ -1,9 +1,8 @@
 // scripts/backupDb.js
-// Database backup utility for the Tremor Watch bot
+// Database backup utility for the Tremor Watch bot (JSON version)
 
-const Database = require("better-sqlite3")
-const path = require("node:path")
 const fs = require("node:fs")
+const path = require("node:path")
 
 // Get database path (same logic as db.js)
 const getDbPath = () => {
@@ -13,10 +12,10 @@ const getDbPath = () => {
 
     const dockerPath = "/app/data"
     if (fs.existsSync(dockerPath)) {
-        return path.join(dockerPath, "db.sqlite")
+        return path.join(dockerPath, "db.json")
     }
 
-    return path.join(__dirname, "..", "data", "db.sqlite")
+    return path.join(__dirname, "..", "data", "db.json")
 }
 
 const DB_PATH = getDbPath()
@@ -57,16 +56,11 @@ function createBackup(label = null) {
     // Create backup filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
     const backupLabel = label ? `${label}_${timestamp}` : timestamp
-    const backupPath = path.join(BACKUP_DIR, `db_backup_${backupLabel}.sqlite`)
+    const backupPath = path.join(BACKUP_DIR, `db_backup_${backupLabel}.json`)
 
     try {
-        // Open database in read-only mode
-        const db = new Database(DB_PATH, { readonly: true })
-
-        // Use SQLite's backup API
-        db.backup(backupPath)
-
-        db.close()
+        // Copy the JSON database file
+        fs.copyFileSync(DB_PATH, backupPath)
 
         const backupSize = fs.statSync(backupPath).size
         console.log(
@@ -88,13 +82,14 @@ function createBackup(label = null) {
  */
 function listBackups() {
     if (!fs.existsSync(BACKUP_DIR)) {
+        console.log("📋 No backups directory found")
         return []
     }
 
-    const files = fs
-        .readdirSync(BACKUP_DIR)
+    const files = fs.readdirSync(BACKUP_DIR)
+    const backups = files
         .filter(
-            (file) => file.startsWith("db_backup_") && file.endsWith(".sqlite")
+            (file) => file.startsWith("db_backup_") && file.endsWith(".json")
         )
         .map((file) => {
             const filePath = path.join(BACKUP_DIR, file)
@@ -108,7 +103,7 @@ function listBackups() {
         })
         .sort((a, b) => b.created - a.created) // Most recent first
 
-    return files
+    return backups
 }
 
 /**
