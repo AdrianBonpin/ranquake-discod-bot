@@ -2,7 +2,7 @@
 
 **Tremor Watch** is a Discord bot that monitors earthquake activity from the **Philippine Institute of Volcanology and Seismology (PHIVOLCS)** and **USGS**, delivering real-time earthquake alerts directly to your Discord server.
 
-![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 
@@ -13,7 +13,7 @@
 -   📊 **Rich Embeds** - Beautiful earthquake information cards with detailed data
 -   🗺️ **Interactive Maps** - Visual earthquake location using Mapbox integration
 -   ⚙️ **Configurable Polling** - Customize earthquake check intervals via environment variables
--   💾 **Persistent Storage** - SQLite database tracks sent earthquakes to avoid duplicates
+-   💾 **Persistent Storage** - JSON database tracks sent earthquakes to avoid duplicates
 -   🔒 **Permission Checks** - Admin/moderator permissions required for configuration commands
 -   ⏱️ **Rate Limiting** - Prevents command spam with smart cooldowns
 -   📦 **Automatic Backups** - Daily database backups with retention management
@@ -62,7 +62,7 @@ GROQ_API_KEY=your_groq_api_key_here
 MAPBOX_API_KEY=your_mapbox_api_key_here  # For enhanced maps (optional)
 GUILD_ID=your_guild_id_here              # For testing (optional)
 CHANNEL_ID=your_channel_id_here          # Default alert channel (optional)
-DB_PATH=./data/db.sqlite                 # Custom database path (optional)
+DB_PATH=./data/db.json                   # Custom database path (optional)
 POLLING_INTERVAL_MINUTES=5               # Check interval in minutes (default: 5)
 BACKUP_DIR=./data/backups                # Backup directory (optional)
 ```
@@ -128,22 +128,23 @@ tremor-watch/
 ├── commands/           # Discord bot command definitions
 │   └── utility/       # Utility commands (help, set-channel, etc.)
 ├── scripts/           # Core functionality scripts
-│   ├── db.js          # SQLite database management
+│   ├── db.js          # JSON database management
 │   ├── backupDb.js    # Database backup utility
 │   ├── phivolcs.js    # PHIVOLCS data scraping
 │   ├── quakeEmbed.js  # Discord embed creation
 │   ├── validation.js  # Input validation and permissions
 │   ├── rateLimit.js   # Rate limiting utility
 │   └── validateEnv.js # Environment variable validation
+├── docs/              # Documentation
+│   ├── SECURITY.md    # Security guidelines
+│   ├── BACKUP.md      # Backup documentation
+│   ├── VALIDATION.md  # Validation documentation
+│   └── DOCKER.md      # Docker guide
 ├── index.js           # Main bot entry point
 ├── package.json       # Project dependencies
 ├── Dockerfile         # Docker configuration
 ├── .env.example       # Environment variables template
-├── .env               # Environment variables (create this)
-├── SECURITY.md        # Security guidelines
-├── BACKUP.md          # Database backup documentation
-├── VALIDATION.md      # Input validation documentation
-└── DOCKER.md          # Docker usage guide
+└── .env               # Environment variables (create this)
 ```
 
 ## 🐳 Docker Support
@@ -162,12 +163,12 @@ docker run -d \
   tremor-watch
 ```
 
-For more details, see [DOCKER.md](./DOCKER.md).
+For more details, see [DOCKER.md](./docs/DOCKER.md).
 
 ## 📝 How It Works
 
 1. **Polling**: The bot checks PHIVOLCS/USGS at configurable intervals (default: 5 minutes) for new earthquake data
-2. **Tracking**: Each earthquake is tracked in a local SQLite database to prevent duplicate alerts
+2. **Tracking**: Each earthquake is tracked in a local JSON database to prevent duplicate alerts
 3. **Validation**: User permissions and channel configurations are validated before processing
 4. **Alerting**: When a new earthquake is detected, the bot sends a rich embed to all configured server channels
 5. **Rate Limiting**: Commands have cooldowns to prevent spam and API abuse
@@ -176,10 +177,10 @@ For more details, see [DOCKER.md](./DOCKER.md).
 
 ## 📚 Documentation
 
--   [Security Guidelines](./SECURITY.md) - Environment variable management and secret rotation
--   [Backup Guide](./BACKUP.md) - Database backup and restore procedures
--   [Validation Guide](./VALIDATION.md) - Input validation and permission checks
--   [Docker Guide](./DOCKER.md) - Docker deployment and configuration
+-   [Security Guidelines](./docs/SECURITY.md) - Environment variable management and secret rotation
+-   [Backup Guide](./docs/BACKUP.md) - Database backup and restore procedures
+-   [Validation Guide](./docs/VALIDATION.md) - Input validation and permission checks
+-   [Docker Guide](./docs/DOCKER.md) - Docker deployment and configuration
 
 ## 🤝 Contributing
 

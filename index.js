@@ -9,9 +9,9 @@ const {
     ActivityType,
 } = require("discord.js")
 const {
-    getLocalCommands,
     deployCommandsToGuild,
-} = require("./deploy-commands-guild.js")
+    getLocalCommands,
+} = require("./scripts/deployCommands.js")
 const getEarthquakeData = require("./scripts/phivolcs.js")
 const { postNewQuakeEmbed } = require("./scripts/quakeEmbed.js")
 const db = require("./scripts/db.js")
@@ -256,14 +256,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
     try {
         await command.execute(interaction)
     } catch (error) {
-        // DEBUG: Log error structure to understand what we're getting
-        console.log(
-            "DEBUG - Error code:",
-            error.code,
-            "Message:",
-            error.message
-        )
-
         // Handle specific Discord API errors gracefully FIRST
         if (error.code === 10062) {
             // Unknown interaction - interaction token expired (>3 seconds)
