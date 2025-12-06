@@ -1,15 +1,24 @@
-const { SlashCommandBuilder, MessageFlags } = require("discord.js")
-const Groq = require("groq-sdk")
+// commands/utility/secret.ts
+
+import {
+    SlashCommandBuilder,
+    MessageFlags,
+    type ChatInputCommandInteraction,
+} from "discord.js"
+import Groq from "groq-sdk"
+import type { Command } from "../../types/index.js"
+
 const groq = new Groq()
 
-module.exports = {
+const command: Command = {
     data: new SlashCommandBuilder()
         .setName("poke")
         .setDescription("Poke RanQuake")
         .addStringOption((option) =>
             option.setName("input").setDescription("Say something to RanQuake")
         ),
-    async execute(interaction) {
+
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         try {
             // Groq
@@ -28,12 +37,13 @@ module.exports = {
                     {
                         role: "user",
                         content: interaction.options.getString("input")
-                            ? interaction.options.getString("input")
+                            ? interaction.options.getString("input")!
                             : "Poke RanQuake",
                     },
                 ],
                 stream: true,
             })
+
             let reply = ""
             for await (const chunk of chat) {
                 reply += chunk.choices[0].delta.content || ""
@@ -47,3 +57,5 @@ module.exports = {
         }
     },
 }
+
+export default command

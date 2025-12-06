@@ -1,15 +1,20 @@
-// scripts/db.js
+// scripts/db.ts
 // JSON-based database manager for Tremor Watch
-// No native dependencies - pure JavaScript!
+// No native dependencies - pure TypeScript!
 
-const fs = require("node:fs")
-const path = require("node:path")
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import type { DatabaseData, DatabaseStats } from "../types/index.js"
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 /**
  * Determine database path based on environment
  * Priority: 1) DB_PATH env var, 2) Docker path if exists, 3) Local development path
  */
-const getDbPath = () => {
+const getDbPath = (): string => {
     if (process.env.DB_PATH) {
         return process.env.DB_PATH
     }
@@ -21,7 +26,7 @@ const getDbPath = () => {
     }
 
     // Local development path
-    return path.join(__dirname, "..", "data", "db.json")
+    return path.join(__dirname, "..", "..", "data", "db.json")
 }
 
 const DB_PATH = getDbPath()
@@ -38,6 +43,9 @@ if (!fs.existsSync(dbDir)) {
  * Stores guild configurations and tracked earthquake IDs
  */
 class DbManager {
+    private dbPath: string
+    private data: DatabaseData
+
     constructor() {
         console.log(`📊 Using database at: ${DB_PATH}`)
         this.dbPath = DB_PATH
@@ -47,23 +55,25 @@ class DbManager {
     /**
      * Load database from JSON file, create if doesn't exist
      */
-    loadDatabase() {
+    private loadDatabase(): DatabaseData {
         try {
             if (fs.existsSync(this.dbPath)) {
                 const rawData = fs.readFileSync(this.dbPath, "utf8")
-                return JSON.parse(rawData)
+                return JSON.parse(rawData) as DatabaseData
             }
         } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error)
             console.warn(
-                `⚠️  Could not load database, creating new one: ${error.message}`
+                `⚠️  Could not load database, creating new one: ${errorMessage}`
             )
         }
 
         // Initialize with default structure
-        const defaultData = {
-            guildConfigs: {}, // { guildId: channelId }
-            trackedQuakes: [], // Array of earthquake IDs
-            version: "2.0.0", // DB schema version
+        const defaultData: DatabaseData = {
+            guildConfigs: {},
+            trackedQuakes: [],
+            version: "2.0.0",
             lastUpdated: new Date().toISOString(),
         }
 
@@ -74,7 +84,7 @@ class DbManager {
     /**
      * Save database to JSON file with atomic write
      */
-    saveDatabase(data = this.data) {
+    private saveDatabase(data: DatabaseData = this.data): void {
         try {
             // Update timestamp
             data.lastUpdated = new Date().toISOString()
@@ -84,7 +94,9 @@ class DbManager {
             fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), "utf8")
             fs.renameSync(tempPath, this.dbPath)
         } catch (error) {
-            console.error(`❌ Failed to save database: ${error.message}`)
+            const errorMessage =
+                error instanceof Error ? error.message : String(error)
+            console.error(`❌ Failed to save database: ${errorMessage}`)
             throw error
         }
     }
@@ -93,10 +105,8 @@ class DbManager {
 
     /**
      * Set alert channel for a guild
-     * @param {string} guildId - Discord guild ID
-     * @param {string} channelId - Discord channel ID
      */
-    setAlertChannel(guildId, channelId) {
+    setAlertChannel(guildId: string, channelId: string): void {
         this.data.guildConfigs[guildId] = channelId
         this.saveDatabase()
         console.log(`✅ Set alert channel for guild ${guildId}: ${channelId}`)
@@ -104,18 +114,15 @@ class DbManager {
 
     /**
      * Get alert channel for a guild
-     * @param {string} guildId - Discord guild ID
-     * @returns {string|null} Channel ID or null if not set
      */
-    getAlertChannel(guildId) {
+    getAlertChannel(guildId: string): string | null {
         return this.data.guildConfigs[guildId] || null
     }
 
     /**
      * Delete alert channel configuration for a guild
-     * @param {string} guildId - Discord guild ID
      */
-    deleteAlertChannel(guildId) {
+    deleteAlertChannel(guildId: string): void {
         delete this.data.guildConfigs[guildId]
         this.saveDatabase()
         console.log(`🗑️  Deleted alert channel for guild ${guildId}`)
@@ -123,9 +130,8 @@ class DbManager {
 
     /**
      * Get all guild configurations as a Map
-     * @returns {Map<string, string>} Map of guild ID to channel ID
      */
-    getAllAlertChannels() {
+    getAllAlertChannels(): Map<string, string> {
         return new Map(Object.entries(this.data.guildConfigs))
     }
 
@@ -133,18 +139,15 @@ class DbManager {
 
     /**
      * Check if an earthquake has been tracked
-     * @param {string} quakeId - Earthquake ID
-     * @returns {boolean} True if already tracked
      */
-    isQuakeTracked(quakeId) {
+    isQuakeTracked(quakeId: string): boolean {
         return this.data.trackedQuakes.includes(quakeId)
     }
 
     /**
      * Add earthquake to tracked list
-     * @param {string} quakeId - Earthquake ID
      */
-    addTrackedQuake(quakeId) {
+    addTrackedQuake(quakeId: string): void {
         if (!this.isQuakeTracked(quakeId)) {
             this.data.trackedQuakes.push(quakeId)
 
@@ -159,17 +162,15 @@ class DbManager {
 
     /**
      * Get count of tracked earthquakes
-     * @returns {number} Number of tracked earthquakes
      */
-    getTrackedQuakeCount() {
+    getTrackedQuakeCount(): number {
         return this.data.trackedQuakes.length
     }
 
     /**
      * Clear old tracked earthquakes (older than specified days)
-     * @param {number} days - Days to keep
      */
-    clearOldTrackedQuakes(days = 30) {
+    clearOldTrackedQuakes(_days: number = 30): void {
         // Note: Since we don't store timestamps with IDs in this simple version,
         // we just keep the most recent 1000 entries
         if (this.data.trackedQuakes.length > 1000) {
@@ -184,9 +185,8 @@ class DbManager {
 
     /**
      * Get database statistics
-     * @returns {Object} Database stats
      */
-    getStats() {
+    getStats(): DatabaseStats {
         return {
             guilds: Object.keys(this.data.guildConfigs).length,
             trackedQuakes: this.data.trackedQuakes.length,
@@ -198,12 +198,11 @@ class DbManager {
 
     /**
      * Export database as JSON string
-     * @returns {string} JSON string of database
      */
-    exportDatabase() {
+    exportDatabase(): string {
         return JSON.stringify(this.data, null, 2)
     }
 }
 
 // Export singleton instance
-module.exports = new DbManager()
+export default new DbManager()

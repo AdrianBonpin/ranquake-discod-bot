@@ -1,15 +1,17 @@
 {
     "name": "tremor-watch",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "description": "Tremor Watch is a Discord bot that monitors the Philippine Institute of Volcanology and Seismology (PHIVOLCS) for earthquake updates and sends them to a Discord channel.",
-    "main": "index.js",
+    "type": "module",
+    "main": "dist/index.js",
     "scripts": {
-        "start": "node --env-file=.env index.js",
-        "deploy": "node index.js",
-        "test": "node scripts/phivolcs.js",
-        "backup:create": "node scripts/backupDb.js create",
-        "backup:list": "node scripts/backupDb.js list",
-        "backup:clean": "node scripts/backupDb.js clean"
+        "build": "tsc",
+        "start": "node --env-file=.env dist/index.js",
+        "dev": "tsx --env-file=.env src/index.ts",
+        "test": "tsx src/scripts/phivolcs.ts",
+        "backup:create": "tsx src/scripts/backupDb.ts create",
+        "backup:list": "tsx src/scripts/backupDb.ts list",
+        "backup:clean": "tsx src/scripts/backupDb.ts clean"
     },
     "keywords": [],
     "author": "Adrian Bonpin",
@@ -20,5 +22,10 @@
         "cheerio": "^1.1.2",
         "discord.js": "^14.23.2",
         "groq-sdk": "^0.34.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.1",
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.2"
     }
 }

@@ -1,7 +1,15 @@
-const { EmbedBuilder } = require("discord.js")
+// scripts/quakeEmbed.ts
+// Creates Discord embed messages for earthquake alerts
+
+import { EmbedBuilder, type TextChannel } from "discord.js"
+import type { Earthquake } from "../types/index.js"
+
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
-async function postNewQuakeEmbed(channel, quake) {
+export async function postNewQuakeEmbed(
+    channel: TextChannel,
+    quake: Earthquake
+): Promise<void> {
     try {
         // MapBox Settings
         const MAG_LABEL_MAPBOX = Math.floor(quake.magnitude).toString()
@@ -14,14 +22,14 @@ async function postNewQuakeEmbed(channel, quake) {
             mapLink =
                 `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/` +
                 `${customMarker}/` +
-                `${quake.longitude},${quake.latitude},7,0/${MAP_SIZE}@2x` + // <--- KEY CHANGE: Added @2x
+                `${quake.longitude},${quake.latitude},7,0/${MAP_SIZE}@2x` +
                 `?access_token=${mapBoxApiKey}`
         } else {
             // Otherwise use yandex
             mapLink = `https://static-maps.yandex.ru/1.x/?l=map&size=400,300&z=7&ll=${quake.longitude},${quake.latitude}&pt=${quake.longitude},${quake.latitude},pmwtm1`
         }
 
-        const magnitudeColor = (() => {
+        const magnitudeColor = ((): number => {
             if (quake.magnitude >= 7.0) return 0xff0000 // Red (Major)
             if (quake.magnitude >= 6.0) return 0xffa500 // Orange (Strong)
             if (quake.magnitude >= 5.0) return 0xffff00 // Yellow (Moderate)
@@ -70,5 +78,3 @@ async function postNewQuakeEmbed(channel, quake) {
         console.error(`Error fetching general earthquake data: ${error}`)
     }
 }
-
-module.exports = { postNewQuakeEmbed }

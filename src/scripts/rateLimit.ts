@@ -1,34 +1,38 @@
-// scripts/rateLimit.js
+// scripts/rateLimit.ts
 // Rate limiting utility for Discord bot commands
+
+import type { RateLimitResult } from "../types/index.js"
 
 /**
  * Simple rate limiter using in-memory Map storage
  * Stores last execution time per user per command
  */
 class RateLimiter {
+    // Map structure: commandName -> userId -> timestamp
+    private cooldowns: Map<string, Map<string, number>>
+
     constructor() {
-        // Map structure: commandName -> userId -> timestamp
         this.cooldowns = new Map()
     }
 
     /**
      * Checks if a user is on cooldown for a command
-     * @param {string} commandName - Name of the command
-     * @param {string} userId - Discord user ID
-     * @param {number} cooldownSeconds - Cooldown duration in seconds
-     * @returns {Object} { limited: boolean, timeRemaining: number }
      */
-    checkRateLimit(commandName, userId, cooldownSeconds) {
+    checkRateLimit(
+        commandName: string,
+        userId: string,
+        cooldownSeconds: number
+    ): RateLimitResult {
         if (!this.cooldowns.has(commandName)) {
             this.cooldowns.set(commandName, new Map())
         }
 
-        const commandCooldowns = this.cooldowns.get(commandName)
+        const commandCooldowns = this.cooldowns.get(commandName)!
         const now = Date.now()
         const cooldownMs = cooldownSeconds * 1000
 
         if (commandCooldowns.has(userId)) {
-            const lastUsed = commandCooldowns.get(userId)
+            const lastUsed = commandCooldowns.get(userId)!
             const timeElapsed = now - lastUsed
             const timeRemaining = cooldownMs - timeElapsed
 
@@ -54,15 +58,13 @@ class RateLimiter {
 
     /**
      * Removes expired cooldown entries to prevent memory buildup
-     * @param {string} commandName - Name of the command
-     * @param {number} cooldownMs - Cooldown duration in milliseconds
      */
-    cleanup(commandName, cooldownMs) {
+    private cleanup(commandName: string, cooldownMs: number): void {
         const commandCooldowns = this.cooldowns.get(commandName)
         if (!commandCooldowns) return
 
         const now = Date.now()
-        const toDelete = []
+        const toDelete: string[] = []
 
         for (const [userId, timestamp] of commandCooldowns.entries()) {
             if (now - timestamp > cooldownMs) {
@@ -75,21 +77,17 @@ class RateLimiter {
 
     /**
      * Manually reset a user's cooldown for a command
-     * @param {string} commandName - Name of the command
-     * @param {string} userId - Discord user ID
      */
-    resetCooldown(commandName, userId) {
+    resetCooldown(commandName: string, userId: string): void {
         if (this.cooldowns.has(commandName)) {
-            this.cooldowns.get(commandName).delete(userId)
+            this.cooldowns.get(commandName)!.delete(userId)
         }
     }
 
     /**
      * Get a formatted cooldown message
-     * @param {number} seconds - Seconds remaining
-     * @returns {string} Formatted message
      */
-    getCooldownMessage(seconds) {
+    getCooldownMessage(seconds: number): string {
         if (seconds >= 60) {
             const minutes = Math.floor(seconds / 60)
             const remainingSeconds = seconds % 60
@@ -103,4 +101,4 @@ class RateLimiter {
 }
 
 // Export a singleton instance
-module.exports = new RateLimiter()
+export default new RateLimiter()

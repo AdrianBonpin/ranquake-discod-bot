@@ -1,9 +1,11 @@
-// Axios
-const axios = require("axios")
-const https = require("https")
+// scripts/phivolcs.ts
+// Fetches earthquake data from PHIVOLCS website
 
-// Cheerio
-const cheerio = require("cheerio")
+import axios from "axios"
+import https from "node:https"
+import * as cheerio from "cheerio"
+import type { Earthquake } from "../types/index.js"
+import db from "./db.js"
 
 // PHIVOLCS Setup
 const URL = "https://earthquake.phivolcs.dost.gov.ph"
@@ -17,7 +19,10 @@ const phivolcsAxios = axios.create({
     timeout: 30 * 1000,
 })
 
-async function getEarthquakeData(recentHours = 12) {
+async function getEarthquakeData(
+    recentHours: number = 12,
+    filterTracked: boolean = false
+): Promise<Earthquake[]> {
     const curDate = new Date()
 
     // Fetch Earthquake Data
@@ -33,13 +38,14 @@ async function getEarthquakeData(recentHours = 12) {
         })
 
         // Start Parsing HTML with Cheerio
-        const $ = cheerio.load(res.data)
-        const loggedQuakes = []
+        const $ = cheerio.load(res.data as string)
+        const loggedQuakes: Earthquake[] = []
 
         // Locate Earthquake Table
         const tables = $("table.MsoNormalTable")
-        let targetTable = null
-        tables.each((idx, table) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let targetTable: any = null
+        tables.each((_idx, table) => {
             const text = $(table).text()
             if (
                 text.includes("Date - Time") ||
@@ -58,7 +64,7 @@ async function getEarthquakeData(recentHours = 12) {
         const rows = $(targetTable).find("tr")
 
         // == Data Cleanup & Parsing
-        rows.each((idx, row) => {
+        rows.each((_idx, row) => {
             const col = $(row).find("td")
 
             if (col.length < 6) return
@@ -69,7 +75,7 @@ async function getEarthquakeData(recentHours = 12) {
             if (
                 Math.abs(
                     new Date(dateTime.replace(" - ", " ")).getTime() -
-                        curDate.getTime()
+                    curDate.getTime()
                 ) >
                 recentHours * 60 * 60 * 1000
             )
@@ -80,16 +86,15 @@ async function getEarthquakeData(recentHours = 12) {
             const depth = Number($(col[3]).text().trim())
             const mag = Number($(col[4]).text().trim())
             const place = $(col[5]).text().replace(/\s+/g, " ").trim()
-            const bulletin = dateTimeCol
-                .find("a")
-                .attr("href")
-                .trim()
-                .replaceAll("\\", "/")
+            const bulletinHref = dateTimeCol.find("a").attr("href")
+            const bulletin = bulletinHref
+                ? bulletinHref.trim().replaceAll("\\", "/")
+                : ""
             const url = `${URL}/${bulletin}`
 
             if (mag < MIN_MAG) return
 
-            const quake = {
+            const quake: Earthquake = {
                 // Create ID using dateTime & lat/long
                 id: (dateTime + lat + long).replace(/\s+/g, "-"),
                 timePST: dateTime.replace(" - ", " "),
@@ -101,22 +106,33 @@ async function getEarthquakeData(recentHours = 12) {
                 url: url,
             }
 
+            // Filter out already tracked quakes if requested
+            if (filterTracked && db.isQuakeTracked(quake.id)) {
+                return
+            }
+
             loggedQuakes.push(quake)
             return true
         })
 
         return loggedQuakes
     } catch (error) {
-        console.error(`Error fetching data from PHIVOLCS: ${error.message}`)
+        const errorMessage =
+            error instanceof Error ? error.message : String(error)
+        console.error(`Error fetching data from PHIVOLCS: ${errorMessage}`)
         return []
     }
 }
 
-async function test() {
+// Test function
+async function test(): Promise<void> {
     const data = await getEarthquakeData()
     console.log(data.reverse())
 }
 
-// test()
+// Run test if executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+    test()
+}
 
-module.exports = getEarthquakeData
+export default getEarthquakeData

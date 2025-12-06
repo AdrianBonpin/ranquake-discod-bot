@@ -1,15 +1,23 @@
-const { SlashCommandBuilder } = require("discord.js")
-const getEarthquakeData = require("../../scripts/phivolcs")
-const { postNewQuakeEmbed } = require("../../scripts/quakeEmbed")
-const rateLimiter = require("../../scripts/rateLimit.js")
+// commands/utility/getLocalQuake.ts
 
-module.exports = {
+import {
+    SlashCommandBuilder,
+    type ChatInputCommandInteraction,
+    type TextChannel,
+} from "discord.js"
+import getEarthquakeData from "../../scripts/phivolcs.js"
+import { postNewQuakeEmbed } from "../../scripts/quakeEmbed.js"
+import rateLimiter from "../../scripts/rateLimit.js"
+import type { Command } from "../../types/index.js"
+
+const command: Command = {
     data: new SlashCommandBuilder()
         .setName("get-local-quake")
         .setDescription(
             "Get the newest earthquake from Phivolcs (Philippines, 4+)"
         ),
-    async execute(interaction) {
+
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply()
 
         // Check rate limit (30 seconds cooldown)
@@ -23,20 +31,24 @@ module.exports = {
             const timeStr = rateLimiter.getCooldownMessage(
                 rateCheck.timeRemaining
             )
-            return interaction.editReply(
+            await interaction.editReply(
                 `⏳ Please wait **${timeStr}** before requesting another earthquake update.`
             )
+            return
         }
 
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId
+
         try {
             // Fetch from new Phivolcs Script
             const res = await getEarthquakeData(12, true)
             if (res && res.length > 0) {
                 const quake = res[0]
-                const channel = interaction.client.channels.cache.get(channelId)
+                const channel = interaction.client.channels.cache.get(
+                    channelId
+                ) as TextChannel
                 await postNewQuakeEmbed(channel, quake)
             } else {
                 await interaction.editReply(
@@ -51,3 +63,5 @@ module.exports = {
         }
     },
 }
+
+export default command

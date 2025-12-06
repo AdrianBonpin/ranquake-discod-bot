@@ -1,11 +1,16 @@
-// scripts/backupDb.js
+// scripts/backupDb.ts
 // Database backup utility for the Tremor Watch bot (JSON version)
 
-const fs = require("node:fs")
-const path = require("node:path")
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+import type { BackupMetadata } from "../types/index.js"
 
-// Get database path (same logic as db.js)
-const getDbPath = () => {
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Get database path (same logic as db.ts)
+const getDbPath = (): string => {
     if (process.env.DB_PATH) {
         return process.env.DB_PATH
     }
@@ -15,13 +20,13 @@ const getDbPath = () => {
         return path.join(dockerPath, "db.json")
     }
 
-    return path.join(__dirname, "..", "data", "db.json")
+    return path.join(__dirname, "..", "..", "data", "db.json")
 }
 
 const DB_PATH = getDbPath()
 
 // Get backup directory
-const getBackupDir = () => {
+const getBackupDir = (): string => {
     if (process.env.BACKUP_DIR) {
         return process.env.BACKUP_DIR
     }
@@ -31,17 +36,15 @@ const getBackupDir = () => {
         return dockerPath
     }
 
-    return path.join(__dirname, "..", "data", "backups")
+    return path.join(__dirname, "..", "..", "data", "backups")
 }
 
 const BACKUP_DIR = getBackupDir()
 
 /**
  * Creates a backup of the database
- * @param {string} label - Optional label for the backup (default: timestamp)
- * @returns {string} Path to the backup file
  */
-function createBackup(label = null) {
+export function createBackup(label: string | null = null): string {
     // Ensure backup directory exists
     if (!fs.existsSync(BACKUP_DIR)) {
         fs.mkdirSync(BACKUP_DIR, { recursive: true })
@@ -71,23 +74,24 @@ function createBackup(label = null) {
 
         return backupPath
     } catch (error) {
-        console.error(`❌ Backup failed: ${error.message}`)
+        const errorMessage =
+            error instanceof Error ? error.message : String(error)
+        console.error(`❌ Backup failed: ${errorMessage}`)
         throw error
     }
 }
 
 /**
  * Lists all available backups
- * @returns {Array} List of backup files with metadata
  */
-function listBackups() {
+export function listBackups(): BackupMetadata[] {
     if (!fs.existsSync(BACKUP_DIR)) {
         console.log("📋 No backups directory found")
         return []
     }
 
     const files = fs.readdirSync(BACKUP_DIR)
-    const backups = files
+    const backups: BackupMetadata[] = files
         .filter(
             (file) => file.startsWith("db_backup_") && file.endsWith(".json")
         )
@@ -101,16 +105,15 @@ function listBackups() {
                 created: stats.mtime,
             }
         })
-        .sort((a, b) => b.created - a.created) // Most recent first
+        .sort((a, b) => b.created.getTime() - a.created.getTime()) // Most recent first
 
     return backups
 }
 
 /**
  * Deletes old backups, keeping only the most recent N backups
- * @param {number} keepCount - Number of backups to keep
  */
-function cleanOldBackups(keepCount = 10) {
+export function cleanOldBackups(keepCount: number = 10): void {
     const backups = listBackups()
 
     if (backups.length <= keepCount) {
@@ -127,8 +130,10 @@ function cleanOldBackups(keepCount = 10) {
             deletedCount++
             console.log(`🗑️  Deleted old backup: ${backup.filename}`)
         } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error)
             console.error(
-                `❌ Failed to delete ${backup.filename}: ${error.message}`
+                `❌ Failed to delete ${backup.filename}: ${errorMessage}`
             )
         }
     }
@@ -139,17 +144,20 @@ function cleanOldBackups(keepCount = 10) {
 }
 
 // CLI support for manual backups
-if (require.main === module) {
+const isMainModule = import.meta.url === `file://${process.argv[1]}`
+
+if (isMainModule) {
     const args = process.argv.slice(2)
     const command = args[0]
 
     switch (command) {
-        case "create":
+        case "create": {
             const label = args[1] || null
             createBackup(label)
             break
+        }
 
-        case "list":
+        case "list": {
             const backups = listBackups()
             console.log(`\n📋 Available backups (${backups.length}):\n`)
             if (backups.length === 0) {
@@ -158,38 +166,38 @@ if (require.main === module) {
                 backups.forEach((backup, index) => {
                     console.log(
                         `  ${index + 1}. ${backup.filename}\n` +
-                            `     Size: ${(backup.size / 1024).toFixed(
-                                2
-                            )} KB\n` +
-                            `     Date: ${backup.created.toLocaleString()}\n`
+                        `     Size: ${(backup.size / 1024).toFixed(
+                            2
+                        )} KB\n` +
+                        `     Date: ${backup.created.toLocaleString()}\n`
                     )
                 })
             }
             break
+        }
 
-        case "clean":
+        case "clean": {
             const keepCount = parseInt(args[1]) || 10
             cleanOldBackups(keepCount)
             break
+        }
 
         default:
             console.log(`
 Tremor Watch - Database Backup Utility
 
 Usage:
-  node scripts/backupDb.js create [label]   Create a new backup
-  node scripts/backupDb.js list             List all backups
-  node scripts/backupDb.js clean [keep]     Delete old backups (default: keep 10)
+  tsx src/scripts/backupDb.ts create [label]   Create a new backup
+  tsx src/scripts/backupDb.ts list             List all backups
+  tsx src/scripts/backupDb.ts clean [keep]     Delete old backups (default: keep 10)
 
 Environment Variables:
   DB_PATH      Custom database path
   BACKUP_DIR   Custom backup directory
 
 Examples:
-  node scripts/backupDb.js create manual
-  node scripts/backupDb.js clean 5
+  tsx src/scripts/backupDb.ts create manual
+  tsx src/scripts/backupDb.ts clean 5
             `)
     }
 }
-
-module.exports = { createBackup, listBackups, cleanOldBackups }

@@ -2,9 +2,10 @@
 
 **Tremor Watch** is a Discord bot that monitors earthquake activity from the **Philippine Institute of Volcanology and Seismology (PHIVOLCS)** and **USGS**, delivering real-time earthquake alerts directly to your Discord server.
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)
 
 ## ✨ Features
 
@@ -85,10 +86,17 @@ BACKUP_DIR=./data/backups                # Backup directory (optional)
     1. Sign up at [Groq](https://groq.com/)
     2. Generate an API key from your dashboard
 
-### 4. Start the Bot
+### 4. Build and Start the Bot
 
 ```bash
+# Build TypeScript
+pnpm build
+
+# Start the bot
 pnpm start
+
+# Or run in development mode (no build required)
+pnpm dev
 ```
 
 ## 🎮 Commands
@@ -125,23 +133,28 @@ Once the bot is running in your server, you can use the following slash commands
 
 ```
 tremor-watch/
-├── commands/           # Discord bot command definitions
-│   └── utility/       # Utility commands (help, set-channel, etc.)
-├── scripts/           # Core functionality scripts
-│   ├── db.js          # JSON database management
-│   ├── backupDb.js    # Database backup utility
-│   ├── phivolcs.js    # PHIVOLCS data scraping
-│   ├── quakeEmbed.js  # Discord embed creation
-│   ├── validation.js  # Input validation and permissions
-│   ├── rateLimit.js   # Rate limiting utility
-│   └── validateEnv.js # Environment variable validation
+├── src/               # TypeScript source files
+│   ├── commands/      # Discord bot command definitions
+│   │   └── utility/   # Utility commands (help, set-channel, etc.)
+│   ├── scripts/       # Core functionality scripts
+│   │   ├── db.ts          # JSON database management
+│   │   ├── backupDb.ts    # Database backup utility
+│   │   ├── phivolcs.ts    # PHIVOLCS data scraping
+│   │   ├── quakeEmbed.ts  # Discord embed creation
+│   │   ├── validation.ts  # Input validation and permissions
+│   │   ├── rateLimit.ts   # Rate limiting utility
+│   │   └── validateEnv.ts # Environment variable validation
+│   ├── types/         # TypeScript type definitions
+│   │   └── index.ts   # Shared types and interfaces
+│   └── index.ts       # Main bot entry point
+├── dist/              # Compiled JavaScript (generated)
 ├── docs/              # Documentation
 │   ├── SECURITY.md    # Security guidelines
 │   ├── BACKUP.md      # Backup documentation
 │   ├── VALIDATION.md  # Validation documentation
 │   └── DOCKER.md      # Docker guide
-├── index.js           # Main bot entry point
 ├── package.json       # Project dependencies
+├── tsconfig.json      # TypeScript configuration
 ├── Dockerfile         # Docker configuration
 ├── .env.example       # Environment variables template
 └── .env               # Environment variables (create this)
@@ -164,6 +177,13 @@ docker run -d \
 ```
 
 For more details, see [DOCKER.md](./docs/DOCKER.md).
+
+> **Note**: You may need to update the Dockerfile to build TypeScript first:
+>
+> ```dockerfile
+> RUN pnpm build
+> CMD ["node", "dist/index.js"]
+> ```
 
 ## 📝 How It Works
 

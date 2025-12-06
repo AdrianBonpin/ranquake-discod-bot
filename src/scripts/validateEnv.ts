@@ -1,11 +1,11 @@
-// scripts/validateEnv.js
+// scripts/validateEnv.ts
 // Validates that all required environment variables are present
 
 /**
  * Validates that all required environment variables are set
  * @throws {Error} If any required variables are missing
  */
-function validateEnvironment() {
+export function validateEnvironment(): void {
     const required = ["DISCORD_BOT_TOKEN", "CLIENT_ID", "GROQ_API_KEY"]
 
     const optional = [
@@ -16,8 +16,8 @@ function validateEnvironment() {
         "POLLING_INTERVAL_MINUTES",
     ]
 
-    const missing = []
-    const warnings = []
+    const missing: string[] = []
+    const warnings: string[] = []
 
     // Check required variables
     for (const varName of required) {
@@ -53,5 +53,3 @@ function validateEnvironment() {
 
     console.log("✅ Environment validation passed\n")
 }
-
-module.exports = { validateEnvironment }

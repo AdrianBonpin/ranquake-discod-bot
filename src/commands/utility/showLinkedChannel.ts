@@ -1,39 +1,49 @@
-const { SlashCommandBuilder, MessageFlags } = require("discord.js")
+// commands/utility/showLinkedChannel.ts
 
-let guildChannelIds = null
+import {
+    SlashCommandBuilder,
+    MessageFlags,
+    type ChatInputCommandInteraction,
+} from "discord.js"
+import type { Command, GuildChannelMap } from "../../types/index.js"
 
-module.exports = {
+let guildChannelIds: GuildChannelMap | null = null
+
+const command: Command = {
     data: new SlashCommandBuilder()
         .setName("is-linked")
         .setDescription(
             "Check whether if the Server has an earthquake alert channel set."
         ),
 
-    // Allow index.js to pass in dependencies
-    setDependencies(channelMap) {
+    // Allow index.ts to pass in dependencies
+    setDependencies(channelMap: GuildChannelMap) {
         guildChannelIds = channelMap
     },
 
-    async execute(interaction) {
+    async execute(interaction: ChatInputCommandInteraction): Promise<void> {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
         const guildId = interaction.guildId
         if (!guildId) {
-            return interaction.editReply(
+            await interaction.editReply(
                 "This command must be used inside a server."
             )
+            return
         }
 
-        const linkedChannelId = guildChannelIds.get(guildId)
+        const linkedChannelId = guildChannelIds?.get(guildId)
 
         if (linkedChannelId) {
-            return interaction.editReply(
+            await interaction.editReply(
                 `This server has an earthquake alert channel set to <#${linkedChannelId}>.`
             )
         } else {
-            return interaction.editReply(
+            await interaction.editReply(
                 "This server does not have an earthquake alert channel set."
             )
         }
     },
 }
+
+export default command
