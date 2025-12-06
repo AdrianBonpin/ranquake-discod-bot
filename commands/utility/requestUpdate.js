@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require("discord.js")
+const rateLimiter = require("../../scripts/rateLimit.js")
 
 let sendQuakeAlerts = null
 
@@ -14,6 +15,24 @@ module.exports = {
 
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
+
+        // Check rate limit (60 seconds cooldown)
+        const rateCheck = rateLimiter.checkRateLimit(
+            "request-update",
+            interaction.user.id,
+            60
+        )
+
+        if (rateCheck.limited) {
+            const timeStr = rateLimiter.getCooldownMessage(
+                rateCheck.timeRemaining
+            )
+            return interaction.editReply(
+                `⏳ Please wait **${timeStr}** before requesting another update.\n\n` +
+                    `This cooldown helps prevent spam and ensures the bot runs smoothly for everyone.`
+            )
+        }
+
         await interaction.editReply("Earthquake updates requested!")
 
         if (!sendQuakeAlerts) {

@@ -2,7 +2,7 @@
 
 **Tremor Watch** is a Discord bot that monitors earthquake activity from the **Philippine Institute of Volcanology and Seismology (PHIVOLCS)** and **USGS**, delivering real-time earthquake alerts directly to your Discord server.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 

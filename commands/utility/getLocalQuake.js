@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require("discord.js")
 const getEarthquakeData = require("../../scripts/phivolcs")
 const { postNewQuakeEmbed } = require("../../scripts/quakeEmbed")
+const rateLimiter = require("../../scripts/rateLimit.js")
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -10,6 +11,23 @@ module.exports = {
         ),
     async execute(interaction) {
         await interaction.deferReply()
+
+        // Check rate limit (30 seconds cooldown)
+        const rateCheck = rateLimiter.checkRateLimit(
+            "get-local-quake",
+            interaction.user.id,
+            30
+        )
+
+        if (rateCheck.limited) {
+            const timeStr = rateLimiter.getCooldownMessage(
+                rateCheck.timeRemaining
+            )
+            return interaction.editReply(
+                `⏳ Please wait **${timeStr}** before requesting another earthquake update.`
+            )
+        }
+
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId

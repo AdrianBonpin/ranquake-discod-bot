@@ -4,6 +4,7 @@ const {
     EmbedBuilder,
     MessageFlags,
 } = require("discord.js")
+const rateLimiter = require("../../scripts/rateLimit.js")
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
 module.exports = {
@@ -12,6 +13,23 @@ module.exports = {
         .setDescription("Get the newest earthquake from USGS (Global, 2.5+)"),
     async execute(interaction) {
         await interaction.deferReply()
+
+        // Check rate limit (30 seconds cooldown)
+        const rateCheck = rateLimiter.checkRateLimit(
+            "get-global-quake",
+            interaction.user.id,
+            30
+        )
+
+        if (rateCheck.limited) {
+            const timeStr = rateLimiter.getCooldownMessage(
+                rateCheck.timeRemaining
+            )
+            return interaction.editReply(
+                `⏳ Please wait **${timeStr}** before requesting another earthquake update.`
+            )
+        }
+
         await interaction.editReply("Fetching earthquake data...")
         // Get Current Channel ID for Embed
         const channelId = interaction.channelId
