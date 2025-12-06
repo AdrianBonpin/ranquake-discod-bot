@@ -15,11 +15,21 @@ const {
 const getEarthquakeData = require("./scripts/phivolcs.js")
 const { postNewQuakeEmbed } = require("./scripts/quakeEmbed.js")
 const db = require("./scripts/db.js")
+const { validateEnvironment } = require("./scripts/validateEnv.js")
+
+// Validate environment variables on startup
+validateEnvironment()
 
 // Global Variables
 const botToken = process.env.DISCORD_BOT_TOKEN
 let guildChannelIds = new Map()
-const POLLING_INTERVAL_MS = 5 * 60 * 1000 // Check every 5 minutes
+
+// Configurable polling interval (default: 5 minutes)
+const POLLING_INTERVAL_MINUTES =
+    parseInt(process.env.POLLING_INTERVAL_MINUTES) || 5
+const POLLING_INTERVAL_MS = POLLING_INTERVAL_MINUTES * 60 * 1000
+
+console.log(`Polling interval set to ${POLLING_INTERVAL_MINUTES} minutes`)
 
 const client = new Client({
     intents: [
@@ -50,17 +60,43 @@ async function sendQuakeAlerts() {
 
         newQuakes.reverse()
 
-        // For Each Quake, send a message to each server that has set a channel
-        newQuakes.forEach(async (quake) => {
-            guildsToAlert.forEach(async ([guildId, channelId]) => {
-                const channel = client.channels.cache.get(channelId)
-                await postNewQuakeEmbed(channel, quake)
-            })
+        // For each quake, send a message to each server that has set a channel
+        for (const quake of newQuakes) {
+            // Send to all guilds in parallel, but wait for all to complete before marking as tracked
+            const sendPromises = guildsToAlert.map(
+                async ([guildId, channelId]) => {
+                    try {
+                        const channel = client.channels.cache.get(channelId)
 
-            // Add the quake to the database
+                        // Validate channel exists
+                        if (!channel) {
+                            console.warn(
+                                `⚠️  Channel ${channelId} not found for guild ${guildId}. ` +
+                                    `The channel may have been deleted. Use /set-earthquake-channel to update.`
+                            )
+                            return
+                        }
+
+                        await postNewQuakeEmbed(channel, quake)
+                        console.log(
+                            `✅ Sent quake ${quake.id} to guild ${guildId}`
+                        )
+                    } catch (error) {
+                        console.error(
+                            `❌ Failed to send quake ${quake.id} to guild ${guildId}:`,
+                            error.message
+                        )
+                    }
+                }
+            )
+
+            // Wait for all messages to complete (or fail)
+            await Promise.allSettled(sendPromises)
+
+            // Only mark as tracked after all send attempts are complete
             db.addTrackedQuake(quake.id)
-            console.log(`Added quake ${quake.id} to the database.\n`)
-        })
+            console.log(`📊 Tracked quake ${quake.id} in database\n`)
+        }
 
         return `Sent ${newQuakes.length} new earthquake alerts to ${guildsToAlert.length} servers.`
     } catch (error) {
@@ -91,6 +127,13 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.log(
         `Collected ${collectedCommands.length} commands for deployment.`
     )
+
+    // Initialize help command with collected commands
+    const helpCommand = client.commands.get("help")
+    if (helpCommand && helpCommand.setCommands) {
+        helpCommand.setCommands(collectedCommands)
+    }
+
     printDividers(2)
     // Deploy to existing guilds on startup
     const guilds = Array.from(readyClient.guilds.cache.values())
@@ -109,9 +152,7 @@ client.once(Events.ClientReady, async (readyClient) => {
     printDividers(1)
     // Set interval for periodic checks
     console.log(
-        `Setting up periodic earthquake checks every ${
-            POLLING_INTERVAL_MS / 1000
-        } seconds.`
+        `Setting up periodic earthquake checks every ${POLLING_INTERVAL_MINUTES} minutes.`
     )
     setInterval(sendQuakeAlerts, POLLING_INTERVAL_MS)
     printDividers(1)
@@ -139,6 +180,31 @@ commandFolders.forEach((folder) => {
         const command = require(filePath)
         if ("data" in command && "execute" in command) {
             client.commands.set(command.data.name, command)
+
+            // Initialize command dependencies based on command name
+            if (command.data.name === "help" && command.setCommands) {
+                // Will be set later after collectedCommands is populated
+            } else if (
+                command.data.name === "request-update" &&
+                command.setSendQuakeAlerts
+            ) {
+                command.setSendQuakeAlerts(sendQuakeAlerts)
+            } else if (
+                command.data.name === "set-earthquake-channel" &&
+                command.setDependencies
+            ) {
+                command.setDependencies(db, guildChannelIds)
+            } else if (
+                command.data.name === "is-linked" &&
+                command.setDependencies
+            ) {
+                command.setDependencies(guildChannelIds)
+            } else if (
+                command.data.name === "unlink" &&
+                command.setDependencies
+            ) {
+                command.setDependencies(db, guildChannelIds)
+            }
         } else {
             console.log(
                 `[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`
@@ -160,100 +226,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     try {
         await command.execute(interaction)
-        // Help
-        if (interaction.commandName === "help") {
-            const user = interaction.user
-            let commandList = ""
-            for (const command of collectedCommands) {
-                commandList +=
-                    "\n- `/" + command.name + "` : " + command.description
-            }
-            await interaction.editReply(
-                `### Hello ${user}!
-            \nHere's the list of commands:
-            ${commandList}`
-            )
-        }
-        // Request-Update
-        else if (interaction.commandName === "request-update") {
-            await interaction.editReply("Earthquake updates requested!")
-            await interaction.editReply(await sendQuakeAlerts())
-        }
-        // Set-Earthquake-Channel
-        else if (interaction.commandName === "set-earthquake-channel") {
-            const fromInteraction = interaction.channelId
-            const fromOption = interaction.options.getString("channel_id")
-            let newChannelId = fromOption || fromInteraction
-
-            if (!newChannelId) {
-                return interaction.editReply("Invalid channel ID provided.")
-            }
-
-            // Get Guild ID (Server ID)
-            const guildId = interaction.guildId
-            if (!guildId) {
-                return interaction.editReply(
-                    "This command must be used inside a server."
-                )
-            }
-
-            // Store the channel ID in the database
-            db.setAlertChannel(guildId, newChannelId)
-            guildChannelIds.set(guildId, newChannelId)
-
-            // Check that the channel ID exists in the bot's cache
-            const channel = interaction.guild.channels.cache.get(newChannelId)
-            if (!channel)
-                return interaction.editReply(
-                    `Channel ID set, but channel not found in this server.`
-                )
-
-            await interaction.editReply(
-                `Earthquake alert channel set to <#${newChannelId}>`
-            )
-        }
-        // Is-Linked
-        else if (interaction.commandName === "is-linked") {
-            const guildId = interaction.guildId
-            if (!guildId) {
-                return interaction.editReply(
-                    "This command must be used inside a server."
-                )
-            }
-
-            const linkedChannelId = guildChannelIds.get(guildId)
-
-            if (linkedChannelId) {
-                return interaction.editReply(
-                    `This server has an earthquake alert channel set to <#${linkedChannelId}>.`
-                )
-            } else {
-                return interaction.editReply(
-                    "This server does not have an earthquake alert channel set."
-                )
-            }
-        }
-        // Unlink
-        else if (interaction.commandName === "unlink") {
-            const guildId = interaction.guildId
-            if (!guildId) {
-                return interaction.editReply(
-                    "This command must be used inside a server."
-                )
-            }
-
-            const linkedChannelId = guildChannelIds.get(guildId)
-            if (!linkedChannelId) {
-                return interaction.editReply(
-                    "This server does not have an earthquake alert channel set."
-                )
-            }
-
-            guildChannelIds.delete(guildId)
-            db.deleteAlertChannel(guildId)
-
-            return interaction.editReply("Earthquake alert channel unlinked.")
-        }
     } catch (error) {
         console.error(error)
         if (interaction.replied || interaction.deferred) {

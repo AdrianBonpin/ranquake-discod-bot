@@ -1,7 +1,7 @@
-import { EmbedBuilder } from "discord.js"
+const { EmbedBuilder } = require("discord.js")
 const mapBoxApiKey = process.env.MAPBOX_API_KEY
 
-export async function postNewQuakeEmbed(channel, quake) {
+async function postNewQuakeEmbed(channel, quake) {
     try {
         // MapBox Settings
         const MAG_LABEL_MAPBOX = Math.floor(quake.magnitude).toString()
@@ -70,3 +70,5 @@ export async function postNewQuakeEmbed(channel, quake) {
         console.error(`Error fetching general earthquake data: ${error}`)
     }
 }
+
+module.exports = { postNewQuakeEmbed }

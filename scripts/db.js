@@ -2,12 +2,37 @@
 
 const Database = require("better-sqlite3")
 const path = require("node:path")
+const fs = require("node:fs")
 
-const DB_PATH = path.join("/app", "data", "db.sqlite")
+// Determine database path based on environment
+// Priority: 1) DB_PATH env var, 2) Docker path if exists, 3) Local development path
+const getDbPath = () => {
+    if (process.env.DB_PATH) {
+        return process.env.DB_PATH
+    }
+
+    // Check if running in Docker (if /app/data exists)
+    const dockerPath = "/app/data"
+    if (fs.existsSync(dockerPath)) {
+        return path.join(dockerPath, "db.sqlite")
+    }
+
+    // Local development path
+    return path.join(__dirname, "..", "data", "db.sqlite")
+}
+
+const DB_PATH = getDbPath()
+
+// Ensure the directory exists
+const dbDir = path.dirname(DB_PATH)
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true })
+    console.log(`Created database directory: ${dbDir}`)
+}
 
 class DbManager {
     constructor() {
-        // 'data/db.sqlite' will be created if it doesn't exist
+        console.log(`Using database at: ${DB_PATH}`)
         this.db = new Database(DB_PATH)
         this.initializeDatabase()
     }

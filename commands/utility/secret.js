@@ -1,4 +1,3 @@
-require("dotenv").config()
 const { SlashCommandBuilder, MessageFlags } = require("discord.js")
 const Groq = require("groq-sdk")
 const groq = new Groq()
