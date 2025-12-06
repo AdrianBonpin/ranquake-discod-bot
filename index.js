@@ -39,16 +39,19 @@ const client = new Client({
     ],
 })
 
+/**
+ * Sends earthquake alerts to all configured Discord servers
+ * Fetches new earthquakes from PHIVOLCS, validates channels, sends embeds,
+ * and tracks sent earthquakes to prevent duplicates.
+ *
+ * @returns {string} Status message indicating number of new earthquakes found
+ */
 async function sendQuakeAlerts() {
     try {
-        const allRecentQuakes = await getEarthquakeData()
+        // Fetch new earthquakes from PHIVOLCS (6+ hours lookback, 4.0+ magnitude)
+        const newQuakes = await getEarthquakeData(6, true)
 
-        // Filter out already tracked earthquakes
-        const newQuakes = allRecentQuakes.filter(
-            (quake) => !db.isQuakeTracked(quake.id)
-        )
-
-        if (newQuakes.length === 0) {
+        if (!newQuakes || newQuakes.length === 0) {
             return "No new earthquakes to report."
         }
 

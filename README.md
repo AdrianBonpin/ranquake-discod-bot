@@ -2,7 +2,7 @@
 
 **Tremor Watch** is a Discord bot that monitors earthquake activity from the **Philippine Institute of Volcanology and Seismology (PHIVOLCS)** and **USGS**, delivering real-time earthquake alerts directly to your Discord server.
 
-![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
 ![License](https://img.shields.io/badge/license-ISC-green.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
 
@@ -12,8 +12,13 @@
 -   🌏 **Multi-Server Support** - Configure different alert channels for each Discord server
 -   📊 **Rich Embeds** - Beautiful earthquake information cards with detailed data
 -   🗺️ **Interactive Maps** - Visual earthquake location using Mapbox integration
--   ⏱️ **Automatic Polling** - Checks for new earthquakes every 5 minutes
+-   ⚙️ **Configurable Polling** - Customize earthquake check intervals via environment variables
 -   💾 **Persistent Storage** - SQLite database tracks sent earthquakes to avoid duplicates
+-   🔒 **Permission Checks** - Admin/moderator permissions required for configuration commands
+-   ⏱️ **Rate Limiting** - Prevents command spam with smart cooldowns
+-   📦 **Automatic Backups** - Daily database backups with retention management
+-   ✅ **Input Validation** - Comprehensive validation for channels and permissions
+-   🐳 **Docker Support** - Optimized Docker configuration with pnpm
 
 ## 📋 Prerequisites
 
@@ -39,13 +44,27 @@ pnpm install
 
 ### 3. Configure Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Copy the example environment file and configure it:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` with your values:
 
 ```env
+# Required Variables
 DISCORD_BOT_TOKEN=your_discord_bot_token_here
 CLIENT_ID=your_discord_client_id_here
-MAPBOX_API_KEY=your_mapbox_api_key_here
 GROQ_API_KEY=your_groq_api_key_here
+
+# Optional Variables
+MAPBOX_API_KEY=your_mapbox_api_key_here  # For enhanced maps (optional)
+GUILD_ID=your_guild_id_here              # For testing (optional)
+CHANNEL_ID=your_channel_id_here          # Default alert channel (optional)
+DB_PATH=./data/db.sqlite                 # Custom database path (optional)
+POLLING_INTERVAL_MINUTES=5               # Check interval in minutes (default: 5)
+BACKUP_DIR=./data/backups                # Backup directory (optional)
 ```
 
 #### Getting Your API Keys:
@@ -76,15 +95,31 @@ pnpm start
 
 Once the bot is running in your server, you can use the following slash commands:
 
+### Public Commands (Anyone Can Use)
+
+| Command             | Description                                                     | Cooldown |
+| ------------------- | --------------------------------------------------------------- | -------- |
+| `/help`             | Display all available commands                                  | None     |
+| `/get-local-quake`  | Get information about recent local (Philippine) earthquakes     | 30s      |
+| `/get-global-quake` | Get information about recent global earthquakes                 | 30s      |
+| `/request-update`   | Manually check for new earthquake updates                       | 60s      |
+| `/is-linked`        | Check if this server has an earthquake alert channel configured | None     |
+| `/poke`             | Interact with RanQuake AI assistant                             | None     |
+
+### Admin Commands (Requires Admin or Manage Channels Permission)
+
 | Command                                | Description                                                         |
 | -------------------------------------- | ------------------------------------------------------------------- |
-| `/help`                                | Display all available commands                                      |
 | `/set-earthquake-channel [channel_id]` | Set the channel for earthquake alerts (defaults to current channel) |
-| `/is-linked`                           | Check if this server has an earthquake alert channel configured     |
 | `/unlink`                              | Remove the earthquake alert channel for this server                 |
-| `/request-update`                      | Manually check for new earthquake updates                           |
-| `/get-local-quake`                     | Get information about recent local (Philippine) earthquakes         |
-| `/get-global-quake`                    | Get information about recent global earthquakes                     |
+
+### Backup Commands (CLI)
+
+| Command                  | Description                             |
+| ------------------------ | --------------------------------------- |
+| `pnpm run backup:create` | Create a manual database backup         |
+| `pnpm run backup:list`   | List all available backups              |
+| `pnpm run backup:clean`  | Clean old backups (keep 10 most recent) |
 
 ## 🔧 Project Structure
 
@@ -93,30 +128,58 @@ tremor-watch/
 ├── commands/           # Discord bot command definitions
 │   └── utility/       # Utility commands (help, set-channel, etc.)
 ├── scripts/           # Core functionality scripts
-│   ├── db.js         # SQLite database management
-│   ├── phivolcs.js   # PHIVOLCS data scraping
-│   ├── quakeEmbed.js # Discord embed creation
-│   └── earthquakeTracker.js
-├── index.js          # Main bot entry point
-├── package.json      # Project dependencies
-└── .env             # Environment variables (create this)
+│   ├── db.js          # SQLite database management
+│   ├── backupDb.js    # Database backup utility
+│   ├── phivolcs.js    # PHIVOLCS data scraping
+│   ├── quakeEmbed.js  # Discord embed creation
+│   ├── validation.js  # Input validation and permissions
+│   ├── rateLimit.js   # Rate limiting utility
+│   └── validateEnv.js # Environment variable validation
+├── index.js           # Main bot entry point
+├── package.json       # Project dependencies
+├── Dockerfile         # Docker configuration
+├── .env.example       # Environment variables template
+├── .env               # Environment variables (create this)
+├── SECURITY.md        # Security guidelines
+├── BACKUP.md          # Database backup documentation
+├── VALIDATION.md      # Input validation documentation
+└── DOCKER.md          # Docker usage guide
 ```
 
 ## 🐳 Docker Support
 
-The project includes a Dockerfile for containerized deployment:
+The project includes an optimized Dockerfile using pnpm:
 
 ```bash
+# Build the image
 docker build -t tremor-watch .
-docker run -d --env-file .env tremor-watch
+
+# Run with environment file
+docker run -d \
+  --name tremor-watch \
+  --env-file .env \
+  -v $(pwd)/data:/app/data \
+  tremor-watch
 ```
+
+For more details, see [DOCKER.md](./DOCKER.md).
 
 ## 📝 How It Works
 
-1. **Polling**: The bot checks PHIVOLCS/USGS every 5 minutes for new earthquake data
+1. **Polling**: The bot checks PHIVOLCS/USGS at configurable intervals (default: 5 minutes) for new earthquake data
 2. **Tracking**: Each earthquake is tracked in a local SQLite database to prevent duplicate alerts
-3. **Alerting**: When a new earthquake is detected, the bot sends a rich embed to all configured server channels
-4. **Persistence**: Server channel configurations are stored in the database and persist across bot restarts
+3. **Validation**: User permissions and channel configurations are validated before processing
+4. **Alerting**: When a new earthquake is detected, the bot sends a rich embed to all configured server channels
+5. **Rate Limiting**: Commands have cooldowns to prevent spam and API abuse
+6. **Backups**: Database is automatically backed up daily with retention management
+7. **Persistence**: Server channel configurations are stored in the database and persist across bot restarts
+
+## 📚 Documentation
+
+-   [Security Guidelines](./SECURITY.md) - Environment variable management and secret rotation
+-   [Backup Guide](./BACKUP.md) - Database backup and restore procedures
+-   [Validation Guide](./VALIDATION.md) - Input validation and permission checks
+-   [Docker Guide](./DOCKER.md) - Docker deployment and configuration
 
 ## 🤝 Contributing
 
