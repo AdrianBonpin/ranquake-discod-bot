@@ -1,4 +1,9 @@
 const { SlashCommandBuilder, MessageFlags } = require("discord.js")
+const {
+    validateChannel,
+    checkManagePermissions,
+    checkBotPermissions,
+} = require("../../scripts/validation.js")
 
 let db = null
 let guildChannelIds = null
@@ -25,6 +30,12 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
+        // Check if user has required permissions
+        const permCheck = checkManagePermissions(interaction.member)
+        if (!permCheck.hasPermission) {
+            return interaction.editReply(permCheck.error)
+        }
+
         const fromInteraction = interaction.channelId
         const fromOption = interaction.options.getString("channel_id")
         let newChannelId = fromOption || fromInteraction
@@ -41,19 +52,28 @@ module.exports = {
             )
         }
 
+        // Validate the channel
+        const channelCheck = validateChannel(interaction.guild, newChannelId)
+        if (!channelCheck.valid) {
+            return interaction.editReply(channelCheck.error)
+        }
+
+        const channel = channelCheck.channel
+
+        // Check if bot has permissions in the channel
+        const botMember = interaction.guild.members.me
+        const botPermCheck = checkBotPermissions(channel, botMember)
+        if (!botPermCheck.hasPermission) {
+            return interaction.editReply(botPermCheck.error)
+        }
+
         // Store the channel ID in the database
         db.setAlertChannel(guildId, newChannelId)
         guildChannelIds.set(guildId, newChannelId)
 
-        // Check that the channel ID exists in the bot's cache
-        const channel = interaction.guild.channels.cache.get(newChannelId)
-        if (!channel)
-            return interaction.editReply(
-                `Channel ID set, but channel not found in this server.`
-            )
-
         await interaction.editReply(
-            `Earthquake alert channel set to <#${newChannelId}>`
+            `✅ Earthquake alert channel set to <#${newChannelId}>\n\n` +
+                `The bot will send earthquake alerts to this channel when new earthquakes are detected.`
         )
     },
 }

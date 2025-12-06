@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require("discord.js")
+const { checkManagePermissions } = require("../../scripts/validation.js")
 
 let db = null
 let guildChannelIds = null
@@ -19,6 +20,12 @@ module.exports = {
     async execute(interaction) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
+        // Check if user has required permissions
+        const permCheck = checkManagePermissions(interaction.member)
+        if (!permCheck.hasPermission) {
+            return interaction.editReply(permCheck.error)
+        }
+
         const guildId = interaction.guildId
         if (!guildId) {
             return interaction.editReply(
@@ -36,6 +43,10 @@ module.exports = {
         guildChannelIds.delete(guildId)
         db.deleteAlertChannel(guildId)
 
-        return interaction.editReply("Earthquake alert channel unlinked.")
+        return interaction.editReply(
+            "✅ Earthquake alert channel unlinked successfully.\n\n" +
+                `The bot will no longer send earthquake alerts to this server. ` +
+                `Use \`/set-earthquake-channel\` to set up alerts again.`
+        )
     },
 }

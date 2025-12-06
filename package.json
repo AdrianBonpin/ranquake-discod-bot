@@ -1,6 +1,6 @@
 {
     "name": "tremor-watch",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "Tremor Watch is a Discord bot that monitors the Philippine Institute of Volcanology and Seismology (PHIVOLCS) for earthquake updates and sends them to a Discord channel.",
     "main": "index.js",
     "scripts": {
